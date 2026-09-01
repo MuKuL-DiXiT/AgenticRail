@@ -1,4 +1,4 @@
-import { initDb, closeDb } from './db';
+import { getDb, initDb, closeDb } from './db';
 import { appendEntry, verifyChain, getBalance, _corruptEntryForDemo, LedgerError } from './ledger';
 import { LedgerEntryType } from './types';
 
