@@ -80,6 +80,22 @@ app.post('/api/ledger/verify', (req, res) => {
   }
 });
 
+app.post('/api/ledger/tamper', (req, res) => {
+  const db = getDb();
+  try {
+    // Corrupt the hash of the most recent block to simulate an attack
+    db.prepare(`
+      UPDATE ledger 
+      SET previous_hash = 'tampered_hash_12345'
+      WHERE id = (SELECT MAX(id) FROM ledger)
+    `).run();
+    logger.warn('🚨 SECURITY ALERT: Ledger actively tampered via backdoor API');
+    res.json({ message: 'Ledger tampered successfully for demo purposes.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to tamper' });
+  }
+});
+
 // Socket.IO Bridge
 const sub = getSubClient();
 sub.subscribe(CHANNELS.TASKS, CHANNELS.BIDS, CHANNELS.AWARDS, CHANNELS.RESULTS).catch(console.error);
