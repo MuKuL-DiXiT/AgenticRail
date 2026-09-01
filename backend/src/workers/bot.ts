@@ -9,6 +9,7 @@ import {
 import { RateLimiter } from '../resilience/rateLimiter';
 import { invokeGroq } from '../services/groq';
 import { env } from '../config/env';
+import { logger } from '../utils/logger';
 
 export type BotPersonality = (
   taskDesc: string,
@@ -45,12 +46,12 @@ export class WorkerBot {
         } else if (channel === CHANNELS.AWARDS) {
           await this.handleAward(messageStr);
         }
-      } catch (err) {
-        console.error(`[Worker ${this.id}] Error handling message:`, err);
+      } catch (err: any) {
+        logger.error(`[Worker ${this.id}] Error handling message:`, { error: err.message, bot_id: this.id });
       }
     });
 
-    console.log(`[Worker ${this.id}] started.`);
+    logger.info(`Worker ${this.id} started.`, { bot_id: this.id });
   }
 
   private async handleTaskBroadcast(messageStr: string) {
@@ -74,12 +75,12 @@ export class WorkerBot {
         };
 
         await publishMessage(CHANNELS.BIDS, bid);
-        console.log(`[${task.correlation_id}] [Worker ${this.id}] Submitted bid of ${amount}`);
+        logger.info(`Submitted bid of ${amount}`, { correlation_id: task.correlation_id, bot_id: this.id, amount });
       } catch (err: any) {
         if (err.name === 'RateLimiterError') {
-          console.warn(`[${task.correlation_id}] [Worker ${this.id}] Rate limited. Cannot bid.`);
+          logger.warn(`Rate limited. Cannot bid.`, { correlation_id: task.correlation_id, bot_id: this.id });
         } else {
-          console.error(err);
+          logger.error('Failed to submit bid', { correlation_id: task.correlation_id, bot_id: this.id, error: err.message });
         }
       }
     }
@@ -94,9 +95,7 @@ export class WorkerBot {
       return;
     }
 
-    console.log(
-      `[${award.correlation_id}] [Worker ${this.id}] 🎉 Won task ${award.task_id}! Working...`
-    );
+    logger.info(`🎉 Won task ${award.task_id}! Working...`, { correlation_id: award.correlation_id, bot_id: this.id, task_id: award.task_id });
 
     try {
       const output = await invokeGroq(this.id, this.apiKey, `Perform task: ${award.task_id}`);
@@ -111,13 +110,9 @@ export class WorkerBot {
       };
 
       await publishMessage(CHANNELS.RESULTS, result);
-      console.log(
-        `[${award.correlation_id}] [Worker ${this.id}] Finished task ${award.task_id} and submitted result.`
-      );
+      logger.info(`Finished task ${award.task_id} and submitted result.`, { correlation_id: award.correlation_id, bot_id: this.id, task_id: award.task_id });
     } catch (err: any) {
-      console.error(
-        `[${award.correlation_id}] [Worker ${this.id}] Failed to complete task. Circuit breaker or Groq error: ${err.message}`
-      );
+      logger.error(`Failed to complete task. Circuit breaker or Groq error`, { correlation_id: award.correlation_id, bot_id: this.id, task_id: award.task_id, error: err.message });
     }
   }
 }

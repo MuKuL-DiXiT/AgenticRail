@@ -12,6 +12,7 @@ import {
 import { validateBotToken } from '../auth/tokens';
 import { appendEntry } from '../ledger/ledger';
 import { LedgerEntryType } from '../ledger/types';
+import { logger } from '../utils/logger';
 
 export class Orchestrator {
   private budget: number;
@@ -46,7 +47,7 @@ export class Orchestrator {
       }
     });
 
-    console.log(`Orchestrator started. Initial budget: ${this.budget}`);
+    logger.info(`Orchestrator started. Initial budget: ${this.budget}`);
   }
 
   async broadcastTask(description: string, maxBudget: number) {
@@ -74,7 +75,7 @@ export class Orchestrator {
     });
 
     await publishMessage(CHANNELS.TASKS, taskMessage);
-    console.log(`[${correlationId}] Task ${taskId} broadcasted. Max budget: ${maxBudget}`);
+    logger.info(`Task broadcasted`, { correlation_id: correlationId, task_id: taskId, max_budget: maxBudget });
 
     return taskId;
   }
@@ -88,25 +89,19 @@ export class Orchestrator {
       try {
         validateBotToken(bid.bot_id, bid.token);
       } catch (err: any) {
-        console.warn(
-          `[${bid.correlation_id}] ❌ Security: Invalid bid from ${bid.bot_id}. Reason: ${err.message}`
-        );
+        logger.warn(`Security: Invalid bid`, { correlation_id: bid.correlation_id, bot_id: bid.bot_id, error: err.message });
         return; // Reject bid silently on pubsub
       }
 
       const taskState = this.openTasks.get(bid.task_id);
       if (taskState) {
         taskState.bids.push(bid);
-        console.log(
-          `[${bid.correlation_id}] Valid bid received from ${bid.bot_id} for amount ${bid.amount}`
-        );
+        logger.info(`Valid bid received`, { correlation_id: bid.correlation_id, bot_id: bid.bot_id, amount: bid.amount, task_id: bid.task_id });
       } else {
-        console.log(
-          `[${bid.correlation_id}] Bid received for unknown or closed task: ${bid.task_id}`
-        );
+        logger.warn(`Bid received for unknown or closed task`, { correlation_id: bid.correlation_id, task_id: bid.task_id });
       }
-    } catch (err) {
-      console.error('Failed to parse bid message', err);
+    } catch (err: any) {
+      logger.error('Failed to parse bid message', { error: err.message });
     }
   }
 
@@ -124,17 +119,15 @@ export class Orchestrator {
 
       if (output && output !== 'NO_CONTENT') {
         action = LedgerEntryType.ESCROW_RELEASE;
-        console.log(`[${correlation_id}] Result ACCEPTED for task ${task_id}.`);
+        logger.info(`Result ACCEPTED`, { correlation_id, task_id });
       } else {
         action = LedgerEntryType.ESCROW_REFUND;
-        console.log(`[${correlation_id}] Result REJECTED for task ${task_id}.`);
+        logger.warn(`Result REJECTED`, { correlation_id, task_id });
       }
 
       const awarded = this.awardedTasks.get(task_id);
       if (!awarded || awarded.bot_id !== bot_id) {
-        console.warn(
-          `[${correlation_id}] Ignored result for unknown or mismatched task/bot: ${task_id}`
-        );
+        logger.warn(`Ignored result for unknown or mismatched task/bot`, { correlation_id, task_id, bot_id });
         return;
       }
 
@@ -152,13 +145,13 @@ export class Orchestrator {
 
         if (action === LedgerEntryType.ESCROW_REFUND) {
           this.budget += awarded.amount;
-          console.log(`[${correlation_id}] Budget refunded. Remaining budget: ${this.budget}`);
+          logger.info(`Budget refunded`, { correlation_id, new_budget: this.budget });
         }
       } catch (err: any) {
-        console.error(`[${correlation_id}] Failed to log resolution to ledger:`, err.message);
+        logger.error(`Failed to log resolution to ledger`, { correlation_id, error: err.message });
       }
-    } catch (err) {
-      console.error('Failed to handle result', err);
+    } catch (err: any) {
+      logger.error('Failed to handle result', { error: err.message });
     }
   }
 
@@ -170,12 +163,10 @@ export class Orchestrator {
     const { taskInfo, bids } = taskState;
     const { correlation_id, max_budget } = taskInfo;
 
-    console.log(
-      `[${correlation_id}] Bidding window closed for ${taskId}. Received ${bids.length} valid bids.`
-    );
+    logger.info(`Bidding window closed`, { correlation_id, task_id: taskId, bids_count: bids.length });
 
     if (bids.length === 0) {
-      console.log(`[${correlation_id}] No valid bids received. Task aborted.`);
+      logger.info(`No valid bids received. Task aborted.`, { correlation_id, task_id: taskId });
       return;
     }
 
@@ -183,7 +174,7 @@ export class Orchestrator {
     const validBids = bids.filter((b) => b.amount <= max_budget);
 
     if (validBids.length === 0) {
-      console.log(`[${correlation_id}] No bids met the max budget constraint of ${max_budget}.`);
+      logger.info(`No bids met the max budget constraint`, { correlation_id, task_id: taskId, max_budget });
       return;
     }
 
@@ -193,9 +184,7 @@ export class Orchestrator {
 
     // Check orchestrator budget
     if (this.budget < winningBid.amount) {
-      console.log(
-        `[${correlation_id}] Insufficient orchestrator budget (${this.budget}) to award bid of ${winningBid.amount}.`
-      );
+      logger.warn(`Insufficient orchestrator budget to award bid`, { correlation_id, task_id: taskId, budget: this.budget, bid_amount: winningBid.amount });
       return;
     }
 
@@ -213,13 +202,11 @@ export class Orchestrator {
         task_id: taskId,
       });
     } catch (err: any) {
-      console.error(`[${correlation_id}] Failed to hold escrow. Aborting award.`, err.message);
+      logger.error(`Failed to hold escrow. Aborting award`, { correlation_id, task_id: taskId, error: err.message });
       return;
     }
 
-    console.log(
-      `[${correlation_id}] 🏆 Winner selected: ${winningBid.bot_id} for amount ${winningBid.amount}. Remaining budget: ${this.budget}`
-    );
+    logger.info(`🏆 Winner selected`, { correlation_id, task_id: taskId, winning_bot_id: winningBid.bot_id, amount: winningBid.amount, remaining_budget: this.budget });
 
     const awardMsg: AwardMessage = {
       type: 'AWARD',
