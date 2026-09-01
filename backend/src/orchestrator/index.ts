@@ -7,8 +7,11 @@ import {
   BidMessage,
   TaskBroadcastMessage,
   AwardMessage,
+  ResultSchema,
 } from '../pubsub/messages';
-import { validateBotToken, AuthError } from '../auth/tokens';
+import { validateBotToken } from '../auth/tokens';
+import { appendEntry } from '../ledger/ledger';
+import { LedgerEntryType } from '../ledger/types';
 
 export class Orchestrator {
   private budget: number;
@@ -20,6 +23,8 @@ export class Orchestrator {
       resolveWindow: NodeJS.Timeout;
     }
   > = new Map();
+
+  private awardedTasks: Map<string, { bot_id: string; amount: number }> = new Map();
 
   constructor() {
     this.budget = env.ORCHESTRATOR_STARTING_BUDGET;
@@ -37,8 +42,7 @@ export class Orchestrator {
       if (channel === CHANNELS.BIDS) {
         this.handleBid(messageStr);
       } else if (channel === CHANNELS.RESULTS) {
-        // Handle result later
-        console.log('Result received', messageStr);
+        this.handleResult(messageStr);
       }
     });
 
@@ -106,6 +110,58 @@ export class Orchestrator {
     }
   }
 
+  private handleResult(messageStr: string) {
+    try {
+      const raw = JSON.parse(messageStr);
+      const result = ResultSchema.parse(raw);
+
+      const { task_id, bot_id, output, correlation_id } = result;
+
+      // In a real system, we might ask the judge bot to evaluate the result.
+      // For now, if output starts with 'MOCK OUTPUT' or isn't empty/NO_CONTENT, we release.
+      // If it fails, we refund.
+      let action: LedgerEntryType;
+
+      if (output && output !== 'NO_CONTENT') {
+        action = LedgerEntryType.ESCROW_RELEASE;
+        console.log(`[${correlation_id}] Result ACCEPTED for task ${task_id}.`);
+      } else {
+        action = LedgerEntryType.ESCROW_REFUND;
+        console.log(`[${correlation_id}] Result REJECTED for task ${task_id}.`);
+      }
+
+      const awarded = this.awardedTasks.get(task_id);
+      if (!awarded || awarded.bot_id !== bot_id) {
+        console.warn(
+          `[${correlation_id}] Ignored result for unknown or mismatched task/bot: ${task_id}`
+        );
+        return;
+      }
+
+      try {
+        appendEntry({
+          idempotency_key: `resolve_${task_id}`,
+          type: action,
+          from_bot_id: 'orchestrator',
+          to_bot_id: bot_id,
+          amount: awarded.amount,
+          task_id,
+        });
+
+        this.awardedTasks.delete(task_id);
+
+        if (action === LedgerEntryType.ESCROW_REFUND) {
+          this.budget += awarded.amount;
+          console.log(`[${correlation_id}] Budget refunded. Remaining budget: ${this.budget}`);
+        }
+      } catch (err: any) {
+        console.error(`[${correlation_id}] Failed to log resolution to ledger:`, err.message);
+      }
+    } catch (err) {
+      console.error('Failed to handle result', err);
+    }
+  }
+
   private async closeBiddingWindow(taskId: string) {
     const taskState = this.openTasks.get(taskId);
     if (!taskState) return;
@@ -146,6 +202,21 @@ export class Orchestrator {
     // Temporarily deduct budget in memory (Ledger will handle real deduction later)
     this.budget -= winningBid.amount;
 
+    // Record ESCROW_HOLD to the Immutable Ledger
+    try {
+      appendEntry({
+        idempotency_key: `hold_${taskId}`,
+        type: LedgerEntryType.ESCROW_HOLD,
+        from_bot_id: 'orchestrator',
+        to_bot_id: winningBid.bot_id,
+        amount: winningBid.amount,
+        task_id: taskId,
+      });
+    } catch (err: any) {
+      console.error(`[${correlation_id}] Failed to hold escrow. Aborting award.`, err.message);
+      return;
+    }
+
     console.log(
       `[${correlation_id}] 🏆 Winner selected: ${winningBid.bot_id} for amount ${winningBid.amount}. Remaining budget: ${this.budget}`
     );
@@ -158,6 +229,8 @@ export class Orchestrator {
       correlation_id,
       timestamp: new Date().toISOString(),
     };
+
+    this.awardedTasks.set(taskId, { bot_id: winningBid.bot_id, amount: winningBid.amount });
 
     await publishMessage(CHANNELS.AWARDS, awardMsg);
   }

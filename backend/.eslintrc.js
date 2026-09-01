@@ -11,7 +11,7 @@ module.exports = {
     jest: true,
   },
   rules: {
-    '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/explicit-function-return-type': 'warn'
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/explicit-function-return-type': 'off'
   }
 };

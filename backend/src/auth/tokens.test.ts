@@ -1,4 +1,4 @@
-import { validateBotToken, AuthError, BOT_TOKENS } from './tokens';
+import { validateBotToken, AuthError } from './tokens';
 import { env } from '../config/env';
 
 describe('Auth Layer: Tokens', () => {

@@ -2,6 +2,7 @@ import { Orchestrator } from './index';
 import * as pubsubClient from '../pubsub/client';
 import { env } from '../config/env';
 import { BidMessage } from '../pubsub/messages';
+import { initDb, closeDb } from '../ledger/db';
 
 // Mock the Redis client
 jest.mock('../pubsub/client', () => {
@@ -18,12 +19,14 @@ describe('Orchestrator Logic', () => {
   let orchestrator: Orchestrator;
 
   beforeEach(() => {
+    initDb(':memory:');
     jest.useFakeTimers();
     jest.clearAllMocks();
     orchestrator = new Orchestrator();
   });
 
   afterEach(() => {
+    closeDb();
     jest.useRealTimers();
   });
 
