@@ -10,7 +10,11 @@ export function getDb(): Database.Database {
 }
 
 export function initDb(dbPath: string = ':memory:'): Database.Database {
-  db = new Database(dbPath);
+  db = new Database(dbPath, { timeout: 5000 }); // Handle SQLITE_BUSY gracefully
+  
+  // Enable Write-Ahead Logging for high concurrency
+  db.pragma('journal_mode = WAL');
+  db.pragma('synchronous = NORMAL');
 
   // Create ledger table if not exists
   db.exec(`

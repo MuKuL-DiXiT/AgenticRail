@@ -2,6 +2,8 @@ export enum LedgerEntryType {
   ESCROW_HOLD = 'ESCROW_HOLD',
   ESCROW_RELEASE = 'ESCROW_RELEASE',
   ESCROW_REFUND = 'ESCROW_REFUND',
+  FIAT_FUNDED = 'FIAT_FUNDED',
+  FIAT_SETTLED = 'FIAT_SETTLED',
 }
 
 export interface LedgerEntryPayload {

@@ -55,12 +55,13 @@ function LiveFeed({ socket }: { socket: Socket | null }) {
   );
 }
 
-function BotRoster() {
+function BotRoster({ socket }: { socket: Socket | null }) {
   const [bots, setBots] = useState<any[]>([]);
+  const [botHealth, setBotHealth] = useState<Record<string, string>>({});
 
   const fetchBots = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/bots');
+      const res = await fetch('http://localhost:4000/api/bots');
       const data = await res.json();
       setBots(data.bots);
     } catch (e) {
@@ -74,6 +75,15 @@ function BotRoster() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (data: any) => {
+      setBotHealth(prev => ({ ...prev, [data.bot_id]: data.status }));
+    };
+    socket.on('bot_status', handler);
+    return () => { socket.off('bot_status', handler); };
+  }, [socket]);
+
   return (
     <div className="glass-panel">
       <h2 className="title" style={{ fontSize: '1.5rem' }}>
@@ -82,10 +92,15 @@ function BotRoster() {
       </h2>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {bots.map(b => (
-          <div key={b.id} className="bot-row">
+          <div key={b.id} className="bot-row" style={{ opacity: botHealth[b.id] === 'DEGRADED' ? 0.5 : 1 }}>
             <div className="bot-name">
-              <Bot size={18} color="var(--text-secondary)" />
+              <Bot size={18} color={botHealth[b.id] === 'DEGRADED' ? 'var(--danger-color)' : 'var(--text-secondary)'} />
               {b.id}
+              {botHealth[b.id] === 'DEGRADED' && (
+                <span className="type-badge" style={{ backgroundColor: 'rgba(255, 76, 76, 0.2)', color: 'var(--danger-color)', marginLeft: '8px' }}>
+                  DEGRADED
+                </span>
+              )}
             </div>
             <div className="bot-balance">{b.balance} 🪙</div>
           </div>
@@ -101,7 +116,7 @@ function LedgerView() {
 
   const fetchLedger = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/ledger?limit=20');
+      const res = await fetch('http://localhost:4000/api/ledger?limit=20');
       const data = await res.json();
       setLedger(data.data.reverse()); // Show newest at top if we fetched desc, wait api is ASC, we want descending.
     } catch (e) {
@@ -112,7 +127,7 @@ function LedgerView() {
   const verifyLedger = async () => {
     try {
       setStatus('idle');
-      const res = await fetch('http://localhost:3000/api/ledger/verify', { method: 'POST' });
+      const res = await fetch('http://localhost:4000/api/ledger/verify', { method: 'POST' });
       if (res.ok) setStatus('valid');
       else setStatus('invalid');
     } catch (e) {
@@ -122,7 +137,7 @@ function LedgerView() {
 
   const tamperLedger = async () => {
     try {
-      await fetch('http://localhost:3000/api/ledger/tamper', { method: 'POST' });
+      await fetch('http://localhost:4000/api/ledger/tamper', { method: 'POST' });
       // Fetch will automatically show the tampered hash
       fetchLedger();
     } catch (e) {
@@ -175,13 +190,104 @@ function LedgerView() {
   );
 }
 
+// --- Razorpay Gateway ---
+declare var window: any;
+
+function PaymentGateway() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const initiatePayment = async (action: 'FUND_ESCROW' | 'SETTLE_PAYMENT') => {
+    try {
+      setLoading(true);
+      setError('');
+      const amount = parseInt(window.prompt('Enter amount to process:', '100'));
+      const taskId = window.prompt('Enter Task ID to associate:', 'task_demo_1');
+      if (!amount || !taskId) return;
+
+      const orderRes = await fetch('http://localhost:4000/api/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || 'Failed to create order');
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: "INR",
+        name: "BotBot Marketplace",
+        description: action === 'FUND_ESCROW' ? "Fund Task Escrow" : "Settle Bot Payment",
+        order_id: orderData.order_id,
+        handler: async function (response: any) {
+          try {
+            const verifyRes = await fetch('http://localhost:4000/api/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...response,
+                task_id: taskId,
+                bot_id: 'worker_1', // default for demo
+                amount: amount,
+                action
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) throw new Error(verifyData.error || 'Verification failed');
+            alert('✅ Payment verified securely by backend!');
+          } catch (err: any) {
+            setError(err.message);
+            alert(`🚨 Payment verification failed: ${err.message}`);
+          }
+        },
+        theme: { color: "#66fcf1" }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response: any){
+        setError(`Payment Failed: ${response.error.description}`);
+      });
+      rzp.open();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="glass-panel" style={{ marginTop: '1.5rem' }}>
+      <h2 className="title" style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>
+        <Shield size={20} style={{ display: 'inline', marginRight: '8px' }} />
+        Fiat Gateway (Human Gated)
+      </h2>
+      <p className="subtitle" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
+        Real funds are never moved autonomously. A judge must authorize fiat transactions via Razorpay.
+      </p>
+      {error && <div style={{ color: 'var(--danger-color)', fontSize: '0.85rem', marginBottom: '1rem' }}>{error}</div>}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button className="btn btn-accent" onClick={() => initiatePayment('FUND_ESCROW')} disabled={loading} style={{ flex: 1 }}>
+          Fund Escrow
+        </button>
+        <button className="btn" onClick={() => initiatePayment('SETTLE_PAYMENT')} disabled={loading} style={{ flex: 1 }}>
+          Settle Payment
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // --- Main App ---
 
 export default function App() {
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const s = io('http://localhost:3000');
+    const s = io('http://localhost:4000');
+    s.on('connect', () => setConnected(true));
+    s.on('disconnect', () => setConnected(false));
     setSocket(s);
     return () => { s.disconnect(); };
   }, []);
@@ -191,6 +297,10 @@ export default function App() {
       <header style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h1 className="title" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>BotBot Marketplace</h1>
         <p className="subtitle">Real-time autonomous agent economy. Powered by Groq & Immutable Ledger.</p>
+        <div style={{ marginTop: '1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+           <div className={`status-indicator ${connected ? 'valid' : 'invalid'}`} /> 
+           {connected ? 'Live Stream Connected' : 'Reconnecting to Event Bus...'}
+        </div>
       </header>
 
       <div className="dashboard-grid">
@@ -198,8 +308,9 @@ export default function App() {
           <LiveFeed socket={socket} />
         </div>
         <div className="sidebar-column">
-          <BotRoster />
+          <BotRoster socket={socket} />
           <LedgerView />
+          <PaymentGateway />
         </div>
       </div>
     </div>

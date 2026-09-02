@@ -12,6 +12,9 @@ const envSchema = z.object({
   GROQ_API_KEY_WORKER_3: z.string().min(1),
   GROQ_API_KEY_WORKER_4: z.string().min(1),
   GROQ_API_KEY_WORKER_5: z.string().min(1),
+  RAZORPAY_KEY_ID: z.string().min(1),
+  RAZORPAY_KEY_SECRET: z.string().min(1),
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
   MOCK_MODE: z.string().transform((val) => val === 'true'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   PORT: z.string().transform(Number).default('4000'),
@@ -50,6 +53,15 @@ export function validateEnv(): z.infer<typeof envSchema> {
         console.error(`❌ MOCK_MODE is false, but ${key} is still set to 'replace_me'.`);
         process.exit(1);
       }
+    }
+  }
+
+  // Always check Razorpay keys for placeholders
+  const rzpKeys = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'] as const;
+  for (const key of rzpKeys) {
+    if (result.data[key] === 'rzp_test_placeholder' || result.data[key] === 'placeholder_replace_me') {
+      console.error(`❌ Missing real value for ${key}. Please update your .env file with test credentials. Do NOT use live keys.`);
+      process.exit(1);
     }
   }
 

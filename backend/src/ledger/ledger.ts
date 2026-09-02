@@ -56,8 +56,8 @@ export function appendEntry(payload: LedgerEntryPayload): LedgerEntry {
     return existing; // Return the existing entry if we've already processed this idempotency_key
   }
 
-  // Use a transaction for consistent reads and writes
-  return db.transaction(() => {
+  // Use an IMMEDIATE transaction to prevent deadlocks during high-concurrency WAL writes
+  const tx = db.transaction(() => {
     // 2. Validate Escrow State Machine Transitions
     const taskEntries = db
       .prepare('SELECT * FROM ledger WHERE task_id = ? ORDER BY id ASC')
@@ -134,7 +134,9 @@ export function appendEntry(payload: LedgerEntryPayload): LedgerEntry {
       .get(result.lastInsertRowid) as LedgerEntry;
 
     return inserted;
-  })(); // execute the transaction
+  });
+  
+  return tx.immediate();
 }
 
 export interface VerificationResult {

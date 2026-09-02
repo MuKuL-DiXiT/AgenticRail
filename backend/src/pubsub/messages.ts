@@ -6,6 +6,7 @@ export const CHANNELS = {
   BIDS: 'bids', // Workers publish bids here
   AWARDS: 'awards', // Orchestrator publishes the award decision here
   RESULTS: 'results', // Workers publish task results here
+  BOT_STATUS: 'bot_status', // Workers publish their health state here
 } as const;
 
 // Message Schemas
@@ -46,8 +47,16 @@ export const ResultSchema = z.object({
   timestamp: z.string(),
 });
 
+export const BotStatusSchema = z.object({
+  type: z.literal('BOT_STATUS'),
+  bot_id: z.string(),
+  status: z.enum(['HEALTHY', 'DEGRADED']),
+  timestamp: z.string(),
+});
+
 // TypeScript Types
 export type TaskBroadcastMessage = z.infer<typeof TaskBroadcastSchema>;
 export type BidMessage = z.infer<typeof BidSchema>;
 export type AwardMessage = z.infer<typeof AwardSchema>;
 export type ResultMessage = z.infer<typeof ResultSchema>;
+export type BotStatusMessage = z.infer<typeof BotStatusSchema>;

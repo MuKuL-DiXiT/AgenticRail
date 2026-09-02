@@ -1,6 +1,8 @@
 import { Groq } from 'groq-sdk';
 import { env } from '../config/env';
 import { CircuitBreaker } from '../resilience/circuitBreaker';
+import { publishMessage } from '../pubsub/client';
+import { CHANNELS, BotStatusMessage } from '../pubsub/messages';
 
 const circuitBreakers = new Map<string, CircuitBreaker>();
 
@@ -11,7 +13,17 @@ function getCircuitBreaker(botId: string): CircuitBreaker {
       new CircuitBreaker(
         env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
         env.CIRCUIT_BREAKER_COOLDOWN_MS,
-        env.EXTERNAL_CALL_TIMEOUT_MS
+        env.EXTERNAL_CALL_TIMEOUT_MS,
+        (state) => {
+          const status = state === 'OPEN' ? 'DEGRADED' : 'HEALTHY';
+          const msg: BotStatusMessage = {
+            type: 'BOT_STATUS',
+            bot_id: botId,
+            status,
+            timestamp: new Date().toISOString(),
+          };
+          publishMessage(CHANNELS.BOT_STATUS, msg).catch(console.error);
+        }
       )
     );
   }

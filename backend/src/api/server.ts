@@ -11,6 +11,11 @@ import { getSubClient } from '../pubsub/client';
 import { CHANNELS } from '../pubsub/messages';
 import { logger } from '../utils/logger';
 
+import { z } from 'zod';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
+
 export const app = express();
 export const server = http.createServer(app);
 export const io = new SocketIOServer(server, {
@@ -19,6 +24,19 @@ export const io = new SocketIOServer(server, {
 
 app.use(cors());
 app.use(express.json());
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' }
+});
+
+app.use('/api/razorpay/', apiLimiter);
+
+const razorpay = new Razorpay({
+  key_id: env.RAZORPAY_KEY_ID,
+  key_secret: env.RAZORPAY_KEY_SECRET,
+});
 
 // OpenAPI simple doc
 const swaggerDoc = {
@@ -46,10 +64,14 @@ app.get('/api/bots', (req, res) => {
   res.json({ bots: balances });
 });
 
+const ledgerQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(50),
+});
+
 app.get('/api/ledger', (req, res) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const { page, limit } = ledgerQuerySchema.parse(req.query);
     const offset = (page - 1) * limit;
 
     const db = getDb();
@@ -96,9 +118,102 @@ app.post('/api/ledger/tamper', (req, res) => {
   }
 });
 
+import { appendEntry } from '../ledger/ledger';
+import { LedgerEntryType } from '../ledger/types';
+
+const orderSchema = z.object({
+  amount: z.number().positive(), // Amount in INR
+});
+
+app.post('/api/razorpay/create-order', async (req, res) => {
+  try {
+    const { amount } = orderSchema.parse(req.body);
+    const options = {
+      amount: Math.round(amount * 100), // Razorpay expects paise
+      currency: "INR",
+      receipt: `rcpt_${Date.now()}`
+    };
+    const order = await razorpay.orders.create(options);
+    res.json({
+      order_id: order.id,
+      key_id: env.RAZORPAY_KEY_ID,
+      amount: options.amount
+    });
+  } catch (err) {
+    logger.error('Failed to create Razorpay order', { error: err });
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+const verifySchema = z.object({
+  razorpay_order_id: z.string(),
+  razorpay_payment_id: z.string(),
+  razorpay_signature: z.string(),
+  task_id: z.string(),
+  bot_id: z.string(),
+  amount: z.number().positive(),
+  action: z.enum(['FUND_ESCROW', 'SETTLE_PAYMENT'])
+});
+
+app.post('/api/razorpay/verify', (req, res) => {
+  try {
+    const payload = verifySchema.parse(req.body);
+    const body = payload.razorpay_order_id + "|" + payload.razorpay_payment_id;
+    
+    const expectedSignature = crypto
+      .createHmac('sha256', env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest('hex');
+      
+    if (expectedSignature === payload.razorpay_signature) {
+      // Signature is valid! Safe to write to ledger.
+      appendEntry({
+        idempotency_key: `fiat_${payload.action}_${payload.razorpay_payment_id}`,
+        type: payload.action === 'FUND_ESCROW' ? LedgerEntryType.FIAT_FUNDED : LedgerEntryType.FIAT_SETTLED,
+        from_bot_id: payload.action === 'FUND_ESCROW' ? 'human_funder' : 'escrow_system',
+        to_bot_id: payload.bot_id,
+        amount: payload.amount,
+        task_id: payload.task_id
+      });
+
+      logger.info(`✅ Razorpay Payment Verified: ${payload.action}`, { payment_id: payload.razorpay_payment_id });
+      res.json({ success: true });
+    } else {
+      logger.warn('🚨 Invalid Razorpay signature detected!', { body });
+      res.status(400).json({ error: 'Invalid signature' });
+    }
+  } catch (err) {
+    logger.error('Verification failed', { error: err });
+    res.status(400).json({ error: 'Verification failed' });
+  }
+});
+
+app.post('/api/razorpay/webhook', (req, res) => {
+  const secret = env.RAZORPAY_WEBHOOK_SECRET;
+  const signature = req.headers['x-razorpay-signature'] as string;
+
+  try {
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+
+    if (expectedSignature === signature) {
+      logger.info('✅ Webhook verified', { event: req.body.event });
+      // In a real system, you would reconcile the database state here if the client disconnected during /verify
+      res.json({ status: 'ok' });
+    } else {
+      logger.warn('🚨 Invalid Webhook signature');
+      res.status(400).json({ error: 'Invalid signature' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Webhook processing failed' });
+  }
+});
+
 // Socket.IO Bridge
 const sub = getSubClient();
-sub.subscribe(CHANNELS.TASKS, CHANNELS.BIDS, CHANNELS.AWARDS, CHANNELS.RESULTS).catch(console.error);
+sub.subscribe(CHANNELS.TASKS, CHANNELS.BIDS, CHANNELS.AWARDS, CHANNELS.RESULTS, CHANNELS.BOT_STATUS).catch(console.error);
 sub.on('message', (channel, messageStr) => {
   io.emit(channel, JSON.parse(messageStr));
 });

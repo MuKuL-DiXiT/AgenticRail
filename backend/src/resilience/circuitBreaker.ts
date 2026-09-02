@@ -19,11 +19,18 @@ export class CircuitBreaker {
   private failureThreshold: number;
   private cooldownMs: number;
   private timeoutMs: number;
+  private onStateChange?: (state: string) => void;
 
-  constructor(failureThreshold: number, cooldownMs: number, timeoutMs: number) {
+  constructor(
+    failureThreshold: number,
+    cooldownMs: number,
+    timeoutMs: number,
+    onStateChange?: (state: string) => void
+  ) {
     this.failureThreshold = failureThreshold;
     this.cooldownMs = cooldownMs;
     this.timeoutMs = timeoutMs;
+    this.onStateChange = onStateChange;
   }
 
   async execute<T>(action: () => Promise<T>): Promise<T> {
@@ -47,15 +54,19 @@ export class CircuitBreaker {
 
   private onSuccess() {
     this.failureCount = 0;
-    this.state = State.CLOSED;
+    if (this.state !== State.CLOSED) {
+      this.state = State.CLOSED;
+      this.onStateChange?.('CLOSED');
+    }
   }
 
   private onFailure() {
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
-    if (this.state === State.HALF_OPEN || this.failureCount >= this.failureThreshold) {
+    if (this.state !== State.OPEN && (this.state === State.HALF_OPEN || this.failureCount >= this.failureThreshold)) {
       this.state = State.OPEN;
+      this.onStateChange?.('OPEN');
     }
   }
 
