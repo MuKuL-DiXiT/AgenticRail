@@ -4,6 +4,41 @@ BotBot is a production-grade, local demonstration of a decentralized, real-time 
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph Client["Frontend"]
+        Dashboard["React Dashboard"]
+    end
+
+    subgraph API["Backend API"]
+        Express["Express Server"]
+        WS["Socket.IO"]
+        Express --- WS
+    end
+
+    subgraph AI["Autonomous Agents"]
+        Orchestrator["Orchestrator Bot"]
+        Workers["Worker Bots (x5)\n(Fast, Load-Based, Specialist, Premium, Judge)"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        Redis["Redis Pub/Sub\n(tasks, bids, awards, results)"]
+        DB[("SQLite Ledger\n(Cryptographic Hash-Chain)")]
+        Groq(("Groq API"))
+    end
+
+    Dashboard <-->|Real-time Events| WS
+    Express <-->|Subscribes to Events| Redis
+    
+    Orchestrator -->|1. Broadcasts Tasks| Redis
+    Workers -->|2. Submits Bids| Redis
+    Orchestrator -->|3. Awards Task| Redis
+    Workers -->|4. Publish Results| Redis
+    
+    Orchestrator -->|5. Records Transactions| DB
+    Workers -.->|Executes Task| Groq
+```
+
 The system is built as a complete micro-economy:
 - **Orchestrator Bot**: Broadcasts tasks, enforces budgets, collects bids, awards tasks to the cheapest qualified worker, and evaluates results.
 - **Worker Bots (x5)**: Each worker operates with a distinct personality (Fast/Cheap, Load-Based, Specialist, Premium, Judge). They are wrapped in rigorous resilience patterns (Token Bucket Rate Limiting, Circuit Breakers) to prevent API spam and cascading failures.
