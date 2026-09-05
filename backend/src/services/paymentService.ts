@@ -7,6 +7,7 @@ import { LedgerEntryType } from '../ledger/types';
 import { Payment, PaymentStatus } from '../models/domain';
 import { CartOrderService } from './cartOrderService';
 import { AuditService } from './auditService';
+import { formatPaise } from '../utils/format';
 
 export class PaymentService {
   private static razorpayInstance: any = null;
@@ -113,7 +114,7 @@ export class PaymentService {
           actor: 'RAZORPAY',
           event_type: 'PAYMENT_DECLINED',
           title: 'Payment Simulation Failed',
-          description: `Transaction of ₹${(order.total_paise / 100).toFixed(2)} was rejected by payment provider. No duplicate charge created.`,
+          description: `Transaction of ${formatPaise(order.total_paise)} was rejected by payment provider. No duplicate charge created.`,
           status: 'FAILURE',
           metadata: { order_id: order.id, razorpay_order_id: rzpOrderId, reason: failureReason },
         });
@@ -125,7 +126,7 @@ export class PaymentService {
           actor: 'RAZORPAY',
           event_type: 'ORDER_INITIALIZED',
           title: 'Razorpay Order Created',
-          description: `Razorpay order ${rzpOrderId} initialized for ₹${(order.total_paise / 100).toFixed(2)}.`,
+          description: `Razorpay order ${rzpOrderId} initialized for ${formatPaise(order.total_paise)}.`,
           status: 'SUCCESS',
           metadata: { order_id: order.id, razorpay_order_id: rzpOrderId },
         });
@@ -236,7 +237,7 @@ export class PaymentService {
       actor: 'LEDGER',
       event_type: 'PAYMENT_SETTLED',
       title: 'Payment Captured & Settled on Ledger',
-      description: `Payment ${rzpPaymentId} verified and captured. Amount ₹${(order.total_paise / 100).toFixed(2)} recorded on cryptographic ledger.`,
+      description: `Payment ${rzpPaymentId} verified and captured. Amount ${formatPaise(order.total_paise)} recorded on cryptographic ledger.`,
       status: 'SUCCESS',
       metadata: {
         order_id: order.id,

@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import rateLimit from 'express-rate-limit';
 import { env } from '../config/env';
 import { getDb } from '../ledger/db';
-import { verifyChain, getAllLedgerEntries, generateAuditCertificate, _corruptEntryForDemo } from '../ledger/ledger';
+import { verifyChain, getAllLedgerEntries, generateAuditCertificate, _corruptEntryForDemo, repairChain } from '../ledger/ledger';
 import { CatalogService, DEMO_MERCHANT_ID } from '../services/catalogService';
 import { MerchantService } from '../services/merchantService';
 import { PolicyEngine, DEFAULT_BUYER_ID } from '../services/policyEngine';
@@ -18,6 +18,7 @@ import { CloudinaryService } from '../services/cloudinaryService';
 import { AuthService } from '../auth/authService';
 import { requireAuth, requireMerchant, optionalAuth, AuthenticatedRequest } from '../auth/middleware';
 import { logger } from '../utils/logger';
+import { formatPaise } from '../utils/format';
 
 export const app = express();
 export const server = http.createServer(app);
@@ -322,7 +323,7 @@ app.post('/api/catalog/products', optionalAuth, (req: AuthenticatedRequest, res)
       actor: 'MERCHANT_AGENT',
       event_type: 'PRODUCT_CREATED',
       title: 'New Product Published',
-      description: `Merchant (${effectiveMerchantId}) created product "${product.name}" (₹${(product.price_paise / 100).toFixed(2)}) with category "${product.category}".`,
+      description: `Merchant (${effectiveMerchantId}) created product "${product.name}" (${formatPaise(product.price_paise)}) with category "${product.category}".`,
       status: 'SUCCESS',
       metadata: { product_id: product.id, name: product.name, price_paise: product.price_paise, policies: product.policies, merchant_id: effectiveMerchantId },
     });
@@ -703,6 +704,15 @@ app.post('/api/ledger/tamper', (req, res) => {
 
     _corruptEntryForDemo(lastEntry.id, 'hash', 'tampered_sha256_hash_99999');
     res.json({ success: true, message: `Corrupted ledger block #${lastEntry.id} hash` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ledger/repair', (req, res) => {
+  try {
+    const result = repairChain();
+    res.json({ success: true, message: `Repaired ${result.repaired} of ${result.total} block(s). Ledger integrity restored.`, result });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

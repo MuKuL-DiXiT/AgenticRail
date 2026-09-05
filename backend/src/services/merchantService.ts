@@ -1,6 +1,7 @@
 import { getDb } from '../ledger/db';
 import { Merchant, MerchantManifest } from '../models/domain';
 import { DEMO_MERCHANT_ID, DEMO_MERCHANT_NAME } from './catalogService';
+import { formatPaise } from '../utils/format';
 
 export class MerchantService {
   public static getMerchant(merchantId: string = DEMO_MERCHANT_ID): Merchant | null {
@@ -182,7 +183,7 @@ export class MerchantService {
           discount_percentage: discountPct,
           discount_paise: discountPaise,
           bundle_name: 'Budget Price-Match Concession',
-          rationale: `Merchant Agent approved a ${discountPct}% price-match concession to meet buyer budget ceiling of ₹${(params.total_budget_paise / 100).toLocaleString()}.`,
+          rationale: `Merchant Agent approved a ${discountPct}% price-match concession to meet buyer budget ceiling of ${formatPaise(params.total_budget_paise)}.`,
           offer_code: `AGENT_PRICEMATCH_${Date.now().toString(36).toUpperCase()}`,
           final_price_paise: params.total_budget_paise,
         };
@@ -196,7 +197,7 @@ export class MerchantService {
           discount_percentage: secretMaxConcessionPct,
           discount_paise: maxAllowedDiscountPaise,
           bundle_name: 'Merchant Floor Counter-Offer',
-          rationale: `Requested budget of ₹${(params.total_budget_paise / 100).toLocaleString()} exceeds operating margin. Counter-offering automated maximum floor concession of ${secretMaxConcessionPct}% (-₹${(maxAllowedDiscountPaise / 100).toLocaleString()}) for a final price of ₹${(secretFloorPricePaise / 100).toLocaleString()}.`,
+          rationale: `Requested budget of ${formatPaise(params.total_budget_paise)} exceeds operating margin. Counter-offering automated maximum floor concession of ${secretMaxConcessionPct}% (-${formatPaise(maxAllowedDiscountPaise)}) for a final price of ${formatPaise(secretFloorPricePaise)}.`,
           offer_code: `AGENT_COUNTER_${Date.now().toString(36).toUpperCase()}`,
           final_price_paise: secretFloorPricePaise,
         };
@@ -224,7 +225,7 @@ export class MerchantService {
           discount_percentage: secretMaxConcessionPct,
           discount_paise: maxAllowedDiscountPaise,
           bundle_name: 'Merchant Floor Counter-Offer',
-          rationale: `Requested ${params.requested_discount_percent}% discount exceeds operating margin. Counter-offering maximum automated floor concession of ${secretMaxConcessionPct}% (-₹${(maxAllowedDiscountPaise / 100).toLocaleString()}) for a final price of ₹${(secretFloorPricePaise / 100).toLocaleString()}.`,
+          rationale: `Requested ${params.requested_discount_percent}% discount exceeds operating margin. Counter-offering maximum automated floor concession of ${secretMaxConcessionPct}% (-${formatPaise(maxAllowedDiscountPaise)}) for a final price of ${formatPaise(secretFloorPricePaise)}.`,
           offer_code: `AGENT_COUNTER_${Date.now().toString(36).toUpperCase()}`,
           final_price_paise: secretFloorPricePaise,
         };

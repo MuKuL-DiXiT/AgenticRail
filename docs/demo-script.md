@@ -28,7 +28,7 @@ This script demonstrates the complete capabilities of **AgentCart** for Hackatho
   > The agent offers a contextual upsell: *"Pair with Nike Dri-FIT Cushioned Running Socks (3-Pack) for ₹499"*.
 - Click **"No, proceed to checkout"**.
 - **Observe (Policy Gating):**
-  > The Policy Engine deterministically evaluates the ₹4,999 cart against the ₹5,000 autonomous limit and outputs: **✅ Policy Status: ALLOWED**.
+  > The Policy Engine deterministically evaluates the ₹4,999 cart against the ₹5,000 autonomous limit and outputs: **[ALLOWED] Policy Status: ALLOWED**.
 - Click **"Yes, proceed with payment"**.
 - **Observe (Razorpay & Settlement):**
   > Payment executes, signature is verified, and the transaction settles onto the SHA-256 cryptographic ledger!

@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   ShieldCheck,
 } from 'lucide-react';
+import { formatPaise } from '../../utils/format';
 
 interface Product {
   id: string;
@@ -340,8 +341,8 @@ export const MerchantProducts: React.FC<MerchantProductsProps> = ({
                       </span>
                     </td>
 
-                    <td className="font-mono" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      ₹{((product.price_paise || 0) / 100).toLocaleString('en-IN')}
+                    <td className="font-mono" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.825rem', whiteSpace: 'nowrap' }}>
+                      {formatPaise(product.price_paise)}
                     </td>
 
                     <td>
@@ -555,7 +556,7 @@ export const MerchantProducts: React.FC<MerchantProductsProps> = ({
 
                     <div>
                       <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '0.3rem' }}>
-                        Price (₹ INR) *
+                        Price (₹ INR) {form.price_inr ? `— ${formatPaise(Number(form.price_inr) * 100)}` : ''} *
                       </label>
                       <input
                         type="number"
@@ -702,7 +703,7 @@ export const MerchantProducts: React.FC<MerchantProductsProps> = ({
                             borderRadius: '4px',
                           }}
                         >
-                          CDN Active ✓
+                          CDN Active [OK]
                         </span>
                       </div>
                     ) : (
@@ -735,11 +736,9 @@ export const MerchantProducts: React.FC<MerchantProductsProps> = ({
                       </label>
                     )}
 
-                    {uploadError && (
                       <div style={{ color: 'var(--error)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
-                        ⚠️ {uploadError}
+                        [Error] {uploadError}
                       </div>
-                    )}
 
                     <div>
                       <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>

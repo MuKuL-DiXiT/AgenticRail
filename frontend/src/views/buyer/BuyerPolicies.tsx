@@ -7,6 +7,7 @@ import {
   Sliders,
 } from 'lucide-react';
 import { StatCard } from '../../components/ui/StatCard';
+import { formatPaise } from '../../utils/format';
 
 interface Policy {
   id: string;
@@ -91,21 +92,21 @@ export const BuyerPolicies: React.FC<BuyerPoliciesProps> = ({
       >
         <StatCard
           title="Single Transaction Ceiling"
-          value={`₹${((localPolicy?.max_transaction_paise || 500000) / 100).toLocaleString('en-IN')}`}
+          value={formatPaise(localPolicy?.max_transaction_paise || 500000)}
           subtitle="Max allowable amount per autonomous order"
           icon={<DollarSign size={18} />}
         />
 
         <StatCard
           title="Daily Spend Budget"
-          value={`₹${(dailyLimit / 100).toLocaleString('en-IN')}`}
-          subtitle={`₹${(todaySpent / 100).toLocaleString('en-IN')} settled today (${budgetUtilization}%)`}
+          value={formatPaise(dailyLimit)}
+          subtitle={`${formatPaise(todaySpent)} settled today (${budgetUtilization}%)`}
           icon={<Sliders size={18} />}
         />
 
         <StatCard
           title="Confirmation Threshold"
-          value={`₹${((localPolicy?.require_confirmation_above_paise || 499900) / 100).toLocaleString('en-IN')}`}
+          value={formatPaise(localPolicy?.require_confirmation_above_paise || 499900)}
           subtitle="Orders above this trigger explicit human approval"
           icon={<ShieldCheck size={18} />}
         />
@@ -123,7 +124,7 @@ export const BuyerPolicies: React.FC<BuyerPoliciesProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '0.35rem' }}>
-                  Max Single Transaction Limit (₹ INR)
+                  Max Single Transaction Limit (₹ INR) — {formatPaise(localPolicy.max_transaction_paise)}
                 </label>
                 <input
                   type="number"
@@ -144,7 +145,7 @@ export const BuyerPolicies: React.FC<BuyerPoliciesProps> = ({
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '0.35rem' }}>
-                  Daily Spending Budget (₹ INR)
+                  Daily Spending Budget (₹ INR) — {formatPaise(localPolicy.daily_spend_limit_paise)}
                 </label>
                 <input
                   type="number"
@@ -165,7 +166,7 @@ export const BuyerPolicies: React.FC<BuyerPoliciesProps> = ({
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '0.35rem' }}>
-                  Human Confirmation Threshold (₹ INR)
+                  Human Confirmation Threshold (₹ INR) — {formatPaise(localPolicy.require_confirmation_above_paise)}
                 </label>
                 <input
                   type="number"

@@ -127,6 +127,18 @@ export class CatalogService {
           { sku: 'NUT-ELEC-CITRUS', name: 'Citrus Blast 300g', price_paise: 79900, stock: 40, attributes: { flavor: 'Citrus' } },
         ],
       },
+      {
+        name: 'Ergonomic Sports Water Bottle 750ml',
+        slug: 'sports-water-bottle-750ml',
+        description: 'BPA-free leakproof sports bottle with quick-squeeze flow valve and volume markers for workout hydration.',
+        category: 'accessories',
+        tags: ['accessories', 'bottle', 'water bottle', 'hydration', 'sports', 'fitness'],
+        price_paise: 200000, // ₹2,000
+        image_url: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=600&auto=format&fit=crop&q=80',
+        variants: [
+          { sku: 'BOT-750-CLEAR', name: '750ml / Clear Grey', price_paise: 200000, stock: 35, attributes: { capacity: '750ml', color: 'Clear Grey' } },
+        ],
+      },
     ];
 
     const insertProductStmt = db.prepare(`

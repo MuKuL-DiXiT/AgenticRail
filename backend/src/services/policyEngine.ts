@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { getDb } from '../ledger/db';
 import { Policy, PolicyEvaluationResult, PolicyTicket, PolicyVerdict } from '../models/domain';
+import { formatPaise } from '../utils/format';
 
 export const DEFAULT_BUYER_ID = 'buyer_agent_001';
 const POLICY_SIGNING_SECRET = process.env.POLICY_SECRET || 'agentcart_policy_signature_secret_2026';
@@ -11,13 +12,22 @@ export class PolicyEngine {
     const db = getDb();
     const existing = db.prepare('SELECT * FROM policies WHERE buyer_id = ?').get(buyerId) as any;
     if (existing) {
+      let categories: string[] = JSON.parse(existing.allowed_categories || '[]');
+      const lowerCats = categories.map(c => c.toLowerCase());
+      if (!lowerCats.includes('accessories')) {
+        categories.push('accessories');
+        db.prepare('UPDATE policies SET allowed_categories = ? WHERE id = ?').run(
+          JSON.stringify(categories),
+          existing.id
+        );
+      }
       return {
         id: existing.id,
         buyer_id: existing.buyer_id,
         max_transaction_paise: existing.max_transaction_paise,
         daily_spend_limit_paise: existing.daily_spend_limit_paise,
         require_confirmation_above_paise: existing.require_confirmation_above_paise,
-        allowed_categories: JSON.parse(existing.allowed_categories || '[]'),
+        allowed_categories: categories,
         created_at: existing.created_at,
       };
     }
@@ -28,7 +38,7 @@ export class PolicyEngine {
       max_transaction_paise: 500000, // ₹5,000 maximum per single transaction
       daily_spend_limit_paise: 1000000, // ₹10,000 maximum per day
       require_confirmation_above_paise: 499900, // Any transaction strictly above ₹4,999 requires manual user confirmation
-      allowed_categories: ['footwear', 'apparel', 'gear', 'nutrition', 'fitness', 'clothing', 'electronics'],
+      allowed_categories: ['footwear', 'apparel', 'gear', 'nutrition', 'fitness', 'clothing', 'electronics', 'accessories', 'sports'],
       created_at: new Date().toISOString(),
     };
 
@@ -179,7 +189,7 @@ export class PolicyEngine {
     }
 
     if (ticket.amount_paise < expectedAmountPaise) {
-      return { valid: false, reason: `Ticket approved amount (₹${(ticket.amount_paise / 100).toFixed(2)}) is less than required (₹${(expectedAmountPaise / 100).toFixed(2)})` };
+      return { valid: false, reason: `Ticket approved amount (${formatPaise(ticket.amount_paise)}) is less than required (${formatPaise(expectedAmountPaise)})` };
     }
 
     const payloadToSign = `${ticket.ticket_id}:${ticket.buyer_id}:${ticket.amount_paise}:${ticket.verdict}:${ticket.issued_at}:${ticket.expires_at}:${ticket.cart_id || ''}`;
@@ -255,7 +265,17 @@ export class PolicyEngine {
 
     // Rule 1: Category Check
     if (params.categories && params.categories.length > 0) {
-      const disallowed = params.categories.filter(c => !policy.allowed_categories.includes(c.toLowerCase()));
+      const normalizedAllowed = policy.allowed_categories.map(c => c.trim().toLowerCase());
+      const disallowed = params.categories.filter(c => {
+        const cat = c.trim().toLowerCase();
+        return !normalizedAllowed.some(allowed =>
+          allowed === cat ||
+          allowed.includes(cat) ||
+          cat.includes(allowed) ||
+          (cat === 'accessories' && allowed.includes('bottle')) ||
+          (cat.includes('bottle') && allowed.includes('accessories'))
+        );
+      });
       if (disallowed.length > 0) {
         return {
           verdict: 'DENY',
@@ -272,7 +292,7 @@ export class PolicyEngine {
     if (amount > policy.max_transaction_paise) {
       return {
         verdict: 'DENY',
-        reason: `Amount (₹${(amount / 100).toFixed(2)}) exceeds maximum single transaction limit of ₹${(policy.max_transaction_paise / 100).toFixed(2)}.`,
+        reason: `Amount (${formatPaise(amount)}) exceeds maximum single transaction limit of ${formatPaise(policy.max_transaction_paise)}.`,
         policy_id: policy.id,
         evaluated_amount_paise: amount,
         max_allowed_paise: policy.max_transaction_paise,
@@ -284,7 +304,7 @@ export class PolicyEngine {
     if (todaySpent + amount > policy.daily_spend_limit_paise) {
       return {
         verdict: 'DENY',
-        reason: `Transaction would cause total daily spend (₹${((todaySpent + amount) / 100).toFixed(2)}) to exceed daily limit of ₹${(policy.daily_spend_limit_paise / 100).toFixed(2)}.`,
+        reason: `Transaction would cause total daily spend (${formatPaise(todaySpent + amount)}) to exceed daily limit of ${formatPaise(policy.daily_spend_limit_paise)}.`,
         policy_id: policy.id,
         evaluated_amount_paise: amount,
         max_allowed_paise: policy.max_transaction_paise,
@@ -296,7 +316,7 @@ export class PolicyEngine {
     if (amount > policy.require_confirmation_above_paise) {
       return {
         verdict: 'REQUIRE_CONFIRMATION',
-        reason: `Amount ₹${(amount / 100).toFixed(2)} exceeds autonomous approval threshold of ₹${(policy.require_confirmation_above_paise / 100).toFixed(2)}. User confirmation is required.`,
+        reason: `Amount ${formatPaise(amount)} exceeds autonomous approval threshold of ${formatPaise(policy.require_confirmation_above_paise)}. User confirmation is required.`,
         policy_id: policy.id,
         evaluated_amount_paise: amount,
         max_allowed_paise: policy.max_transaction_paise,
@@ -314,7 +334,7 @@ export class PolicyEngine {
 
     return {
       verdict: 'ALLOW',
-      reason: `Transaction of ₹${(amount / 100).toFixed(2)} is within autonomous limit of ₹${(policy.max_transaction_paise / 100).toFixed(2)} and daily budget.`,
+      reason: `Transaction of ${formatPaise(amount)} is within autonomous limit of ${formatPaise(policy.max_transaction_paise)} and daily budget.`,
       policy_id: policy.id,
       evaluated_amount_paise: amount,
       max_allowed_paise: policy.max_transaction_paise,

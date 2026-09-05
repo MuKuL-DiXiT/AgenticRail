@@ -30,6 +30,7 @@ interface AppShellProps {
   onToggleFailure: () => void;
   onVerifyLedger: () => void;
   onTamperLedger: () => void;
+  onRepairLedger?: () => void;
   isVerifying: boolean;
   ledgerVerification: { isValid: boolean; reason?: string } | null;
   onOpenAuth: () => void;
@@ -43,6 +44,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   onToggleFailure,
   onVerifyLedger,
   onTamperLedger,
+  onRepairLedger,
   isVerifying,
   ledgerVerification,
   onOpenAuth,
@@ -392,8 +394,21 @@ export const AppShell: React.FC<AppShellProps> = ({
               style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
             >
               <Lock size={13} />
-              <span>{isVerifying ? 'Checking...' : ledgerVerification?.isValid ? '✓ Chain Verified' : ledgerVerification?.isValid === false ? '🚨 Tampered!' : 'Verify Ledger'}</span>
+              <span>{isVerifying ? 'Checking...' : ledgerVerification?.isValid ? 'Chain Verified' : ledgerVerification?.isValid === false ? 'TAMPER DETECTED' : 'Verify Ledger'}</span>
             </button>
+
+            {/* Restore/Repair Ledger Button */}
+            {onRepairLedger && ledgerVerification?.isValid === false && (
+              <button
+                onClick={onRepairLedger}
+                className="btn btn-success"
+                style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
+                title="Repair broken hash chain and restore cryptographic integrity"
+              >
+                <ShieldCheck size={13} />
+                <span>Restore Chain</span>
+              </button>
+            )}
 
             {/* Tamper Button for Demo */}
             <button

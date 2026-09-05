@@ -7,7 +7,7 @@ import { logger } from './utils/logger';
 
 async function runSeed() {
   console.log('====================================================');
-  console.log('🌱 AgentCart Database Seeder');
+  console.log('[SEED] AgentCart Database Seeder');
   console.log('====================================================');
 
   const dbPath = env.SQLITE_DB_PATH || 'agentcart.db';
@@ -15,28 +15,28 @@ async function runSeed() {
   initDb(dbPath);
 
   // 1. Seed Merchant & Realistic Products / Variants
-  logger.info('📦 Seeding Merchant Store & Product Catalog...');
+  logger.info('[SEED] Seeding Merchant Store & Product Catalog...');
   CatalogService.seedCatalog();
 
   // 2. Initialize Default Spending Policy
-  logger.info('🛡️ Initializing Autonomous Buyer Spending Policy...');
+  logger.info('[SEED] Initializing Autonomous Buyer Spending Policy...');
   PolicyEngine.initDefaultPolicy();
 
   // 3. Seed Real Auth Accounts (Passwords hashed with bcrypt)
-  logger.info('👤 Seeding Real Database Users (Buyer & Merchant)...');
+  logger.info('[SEED] Seeding Real Database Users (Buyer & Merchant)...');
   await AuthService.seedDemoAccounts();
 
   console.log('====================================================');
-  console.log('✅ Seeding Complete! Real Database Credentials:');
+  console.log('[SUCCESS] Seeding Complete! Real Database Credentials:');
   console.log('----------------------------------------------------');
-  console.log('🛒 BUYER ACCOUNT:');
+  console.log('[BUYER ACCOUNT]');
   console.log('   Email:    rahul@runner.ai');
   console.log('   Password: password123');
   console.log('   Role:     BUYER');
   console.log('   Name:     Rahul Sharma');
   console.log('   Policy:   Max Tx ₹5,000 | Daily Spend ₹10,000');
   console.log('----------------------------------------------------');
-  console.log('🏪 MERCHANT ACCOUNT:');
+  console.log('[MERCHANT ACCOUNT]');
   console.log('   Email:    merchant@urbanfit.ai');
   console.log('   Password: password123');
   console.log('   Role:     MERCHANT');

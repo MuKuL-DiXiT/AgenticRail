@@ -197,3 +197,43 @@ export function _corruptEntryForDemo(id: number, field: string, newValue: string
   const db = getDb();
   db.prepare(`UPDATE ledger SET ${field} = ? WHERE id = ?`).run(newValue, id);
 }
+
+export function repairChain(): { repaired: number; total: number } {
+  const db = getDb();
+  const allEntries = db.prepare('SELECT * FROM ledger ORDER BY id ASC').all() as LedgerEntry[];
+  let expectedPrevHash = GENESIS_PREV_HASH;
+  let repairedCount = 0;
+
+  for (const entry of allEntries) {
+    let needsUpdate = false;
+    let prevHashToUse = entry.prev_hash;
+
+    if (entry.prev_hash !== expectedPrevHash) {
+      prevHashToUse = expectedPrevHash;
+      needsUpdate = true;
+    }
+
+    const computedHash = calculateHash(prevHashToUse, entry.timestamp, {
+      idempotency_key: entry.idempotency_key,
+      type: entry.type as LedgerEntryType,
+      from_entity: entry.from_entity,
+      to_entity: entry.to_entity,
+      amount_paise: entry.amount_paise,
+      reference_id: entry.reference_id,
+    });
+
+    if (computedHash !== entry.hash || needsUpdate) {
+      db.prepare('UPDATE ledger SET prev_hash = ?, hash = ? WHERE id = ?').run(
+        prevHashToUse,
+        computedHash,
+        entry.id
+      );
+      repairedCount++;
+    }
+
+    expectedPrevHash = computedHash;
+  }
+
+  return { repaired: repairedCount, total: allEntries.length };
+}
+

@@ -140,7 +140,7 @@ export const MerchantManifest: React.FC<MerchantManifestProps> = ({ manifest, ap
             Razorpay Test Rails
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: '0.2rem', fontWeight: 500 }}>
-            Webhook Verified ✓
+            Webhook Verified [OK]
           </div>
         </div>
       </div>

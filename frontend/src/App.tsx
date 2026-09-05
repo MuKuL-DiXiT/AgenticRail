@@ -130,7 +130,7 @@ export default function App() {
   >([
     {
       sender: 'agent',
-      text: "👋 Hello! I am your **Autonomous AI Buyer Agent**.\n\nType any item or keyword you're looking for (e.g. *hydration vest*, *salomon flask*, *socks*, *running shoes*), and I will search the merchant catalog in real-time and negotiate the best price for you.",
+      text: "[WELCOME] Hello! I am your **Autonomous AI Buyer Agent**.\n\nType any item or keyword you're looking for (e.g. *hydration vest*, *salomon flask*, *socks*, *running shoes*), and I will search the merchant catalog in real-time and negotiate the best price for you.",
       timestamp: new Date().toLocaleTimeString(),
     },
   ]);
@@ -352,6 +352,25 @@ export default function App() {
     }
   };
 
+  const repairLedger = async () => {
+    setIsVerifying(true);
+    try {
+      const res = await authFetch(`${API_BASE}/api/ledger/repair`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setLedgerVerification({ isValid: true });
+        alert(data.message || 'Ledger hash chain repaired successfully!');
+      } else {
+        alert(data.error || 'Failed to repair ledger');
+      }
+    } catch (err: any) {
+      console.error('Repair failed', err);
+    } finally {
+      setIsVerifying(false);
+      setTimeout(() => setLedgerVerification(null), 5000);
+    }
+  };
+
   const handleCreateProduct = async (productForm: any) => {
     try {
       const res = await authFetch(`${API_BASE}/api/catalog/products`, {
@@ -483,7 +502,7 @@ export default function App() {
         ...prev,
         {
           sender: 'agent',
-          text: `⚠️ Error processing request: ${err.message}`,
+          text: `[Error] Error processing request: ${err.message}`,
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
@@ -505,6 +524,7 @@ export default function App() {
       onToggleFailure={toggleFailureMode}
       onVerifyLedger={verifyLedger}
       onTamperLedger={tamperLedger}
+      onRepairLedger={repairLedger}
       isVerifying={isVerifying}
       ledgerVerification={ledgerVerification}
       onOpenAuth={() => {
@@ -563,6 +583,7 @@ export default function App() {
               auditEvents={auditEvents}
               onVerifyLedger={verifyLedger}
               onTamperLedger={tamperLedger}
+              onRepairLedger={repairLedger}
               isVerifying={isVerifying}
               ledgerVerification={ledgerVerification}
             />
@@ -628,6 +649,7 @@ export default function App() {
               auditEvents={auditEvents}
               onVerifyLedger={verifyLedger}
               onTamperLedger={tamperLedger}
+              onRepairLedger={repairLedger}
               isVerifying={isVerifying}
               ledgerVerification={ledgerVerification}
             />

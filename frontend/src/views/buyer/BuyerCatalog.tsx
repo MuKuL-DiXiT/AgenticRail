@@ -5,6 +5,7 @@ import {
   Bot,
   Image as ImageIcon,
 } from 'lucide-react';
+import { formatPaise } from '../../utils/format';
 
 interface Product {
   id: string;
@@ -209,8 +210,8 @@ export const BuyerCatalog: React.FC<BuyerCatalogProps> = ({ products, onAskAgent
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                     {product.name}
                   </h3>
-                  <div className="font-mono" style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    ₹{((product.price_paise || 0) / 100).toLocaleString('en-IN')}
+                  <div className="font-mono" style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {formatPaise(product.price_paise)}
                   </div>
                 </div>
 
@@ -238,7 +239,7 @@ export const BuyerCatalog: React.FC<BuyerCatalogProps> = ({ products, onAskAgent
                       fontWeight: 600,
                     }}
                   >
-                    ⚡ Negotiable: ≤{product.policies?.max_concession_percent ?? 15}%
+                    Negotiable: ≤{product.policies?.max_concession_percent ?? 15}%
                   </span>
                   <span
                     style={{
@@ -249,7 +250,7 @@ export const BuyerCatalog: React.FC<BuyerCatalogProps> = ({ products, onAskAgent
                       borderRadius: '4px',
                     }}
                   >
-                    📦 {totalStock > 0 ? `${totalStock} in stock` : 'Out of stock'}
+                    {totalStock > 0 ? `${totalStock} in stock` : 'Out of stock'}
                   </span>
                 </div>
               </div>

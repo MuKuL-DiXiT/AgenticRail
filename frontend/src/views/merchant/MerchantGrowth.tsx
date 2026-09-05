@@ -195,7 +195,7 @@ export const MerchantGrowth: React.FC<MerchantGrowthProps> = () => {
                     className={isApplied ? 'btn btn-secondary' : 'btn btn-primary'}
                     style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
                   >
-                    {isApplied ? '✓ Rule Active' : 'Activate Rule'}
+                    {isApplied ? 'Rule Active [OK]' : 'Activate Rule'}
                   </button>
                 </div>
               </div>

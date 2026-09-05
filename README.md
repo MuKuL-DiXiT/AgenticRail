@@ -2,13 +2,13 @@
 
 > **TRACK 01 — AI Growth & Agentic Commerce**
 > 
-> Empower merchants to become discoverable, sellable, and transactable by autonomous AI buyers end-to-end.
+> Empowering merchants to become discoverable, sellable, and transactable by autonomous AI buyers end-to-end.
 
-AgentCart bridges machine-readable merchant capabilities with state-machine AI buyers, bounded deterministic spending policies, Razorpay Test Mode checkout, idempotent webhooks, and a tamper-evident SHA-256 cryptographic ledger.
+AgentCart bridges machine-readable merchant capabilities with state-machine AI buyers, bounded deterministic spending policies, Razorpay Test Mode checkout, idempotent webhooks, and a tamper-evident SHA-256 cryptographic audit ledger.
 
 ---
 
-## 🏗️ Architecture
+## Technical Architecture
 
 ```mermaid
 flowchart TB
@@ -41,51 +41,51 @@ flowchart TB
 
 ---
 
-## 🔒 Core Invariant: NEVER Allow the LLM to Control Money
+## Core Invariant: LLM Money Control Isolation
 
 ```text
 User / Natural Language Prompt
-              ↓
+              |
    AI Buyer Agent (Intent)
-              ↓
-  Catalog Discovery & Upsell
-              ↓
- Deterministic Policy Engine (ALLOW / DENY / REQUIRE_CONFIRMATION)
-              ↓
-     Order & Authorization
-              ↓
-  Razorpay Test Mode Payment
-              ↓
-  Signature-Verified Webhook (Idempotent)
-              ↓
- SHA-256 Cryptographic Ledger
+              |
+   Catalog Discovery & Machine Bargaining
+              |
+  Deterministic Policy Engine (ALLOW / DENY / REQUIRE_CONFIRMATION)
+              |
+     Order Authorization (Signed Single-Use Policy Ticket)
+              |
+   Razorpay Test Mode Payment Rails
+              |
+   Signature-Verified Webhook (Idempotent)
+              |
+  SHA-256 Cryptographic Ledger Entry
 ```
 
 ---
 
-## 👥 Role-Based Authentication & Pre-Seeded Accounts
+## Role-Based Authentication & Seeded Demo Credentials
 
-AgentCart features real database-backed authentication with password hashing (`bcryptjs`), cryptographic session verification (`JWT`), and tenant isolation:
+AgentCart features real database-backed authentication with password hashing (`bcryptjs`), cryptographic session verification (`JWT`), and multi-tenant data isolation:
 
-| Role | Email | Password | Details & Capabilities |
+| Role | Email | Password | Account Details & Capabilities |
 | :--- | :--- | :--- | :--- |
-| **BUYER** | `rahul@runner.ai` | `password123` | Autonomous AI shopper, semantic search, dynamic price negotiation, personal spending limits, persisted cart & Razorpay checkout. |
-| **MERCHANT** | `merchant@urbanfit.ai` | `password123` | Store manager (`mch_urbanfit_001`), Cloudinary product & inventory publishing, live database revenue analytics, concession limits, machine-readable manifest. |
+| **BUYER** | `rahul@runner.ai` | `password123` | Autonomous AI shopper, semantic keyword search, dynamic machine-to-machine bargaining, personal spending policy caps, persisted cart & Razorpay checkout. |
+| **MERCHANT** | `merchant@urbanfit.ai` | `password123` | Store manager (`mch_urbanfit_001`), Cloudinary product & inventory publishing, live database revenue analytics, concession limits, machine-readable manifest inspector. |
 
-Users can also register brand-new accounts dynamically with full role assignment and automatic spending policy or merchant store provisioning.
-
----
-
-## 💳 Razorpay Test Mode Platform Rails Note
-
-For this hackathon buildathon environment:
-- Razorpay credentials (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`) are configured as **platform infrastructure configuration** in the backend `.env`.
-- **Both the BUYER and MERCHANT flows share this single Razorpay Test Mode platform account.** The identities of Buyer and Merchant remain strictly separated at the application and database layer, but payments route through the configured Razorpay Test Mode platform rails.
-- Secret keys and webhook secrets exist only on the backend and are **never exposed to frontend clients** or stored in user database records.
+Users can also register new accounts dynamically with full role assignment and automatic spending policy or merchant store provisioning.
 
 ---
 
-## 🚀 Quickstart & Running Locally
+## Razorpay Platform Rails Configuration
+
+For this hackathon implementation:
+- Razorpay credentials (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`) are configured as platform infrastructure parameters in the backend `.env`.
+- Both Buyer and Merchant flows share this single Razorpay Test Mode platform account while maintaining strict separation at the application and database layers.
+- Secret keys and webhook signing secrets reside exclusively on the backend server and are never exposed to frontend clients.
+
+---
+
+## Quickstart & Environment Setup
 
 ### 1. Prerequisites
 - Node.js 18+
@@ -100,7 +100,7 @@ npm install
 ```bash
 npm run seed
 ```
-Creates persistent SQLite tables, seeds catalog items & variants, initial spending policies, and both demo accounts (`rahul@runner.ai` and `merchant@urbanfit.ai`).
+Creates persistent SQLite tables, seeds catalog items & variants, initializes spending policies, and provisions both demo accounts (`rahul@runner.ai` and `merchant@urbanfit.ai`).
 
 ### 4. Run Backend & Frontend Concurrently
 ```bash
@@ -112,20 +112,21 @@ npm run dev
 
 ---
 
-## 🧪 Running Tests
+## Running Automated Tests
+
 ```bash
 npm test
 ```
-Executes all 18 test suites covering:
-- Real role-based authentication, registration, login, and tenant/order isolation
-- Deterministic Policy Engine limits, category rules & concurrent race condition prevention
-- Razorpay webhook signature verification, replay protection & idempotency
-- Cryptographic hash-chain ledger integrity, block validation & tamper localization
-- End-to-end conversational agent negotiation and checkout state machine
+Executes all 18 Jest test suites covering 76 individual tests:
+- Real role-based authentication, registration, login, and tenant isolation.
+- Deterministic Policy Engine limits, category rules, and concurrency race-condition prevention.
+- Razorpay webhook signature verification, replay protection, and idempotency.
+- Cryptographic hash-chain ledger integrity, block validation, and tamper localization.
+- End-to-end conversational agent negotiation and checkout state machine.
 
 ---
 
-## 🎬 Live Hackathon Demo Walkthrough
+## Live Hackathon Walkthrough
 
 1. **Merchant Machine-Readable Manifest**:
    - Go to **"Merchant Catalog & Manifest"** to inspect the JSON manifest exposing catalog search, inventory, cart creation, and checkout endpoints.
@@ -136,19 +137,23 @@ Executes all 18 test suites covering:
    - The Policy Engine validates the ₹4,999 cart against the ₹5,000 autonomous limit (`ALLOW`).
    - The agent executes a Razorpay Test Mode checkout and settles the payment onto the ledger.
 4. **Cryptographic Tamper-Evidence**:
-   - Click **"Verify Ledger"** -> Flashes Green (Valid Chain).
-   - Click **"Tamper (Demo)"** to simulate malicious database corruption -> Run **"Verify Ledger"** -> Flashes Red with detected corrupted hash!
+   - Click **"Verify Ledger"** -> Displays **Chain Verified**.
+   - Click **"Tamper (Demo)"** to simulate malicious database corruption -> Run **"Verify Ledger"** -> Displays **Tamper Detected** with localizing details!
 5. **Graceful Failure Handling**:
-   - Toggle **"Failure Simulation: ON"** in the top bar to demonstrate safe recovery without duplicate charges.
+   - Toggle **"Failure Mode Active"** in the top bar to demonstrate safe recovery without duplicate charges.
 
 ---
 
-## 📚 Complete Documentation
+## Technical Documentation Suite
+
+- [Agent Specification & AI Judge Guide](AGENT.md)
 - [Architecture & Design](docs/architecture.md)
 - [Agent Flow & State Machine](docs/agent-flow.md)
 - [Payment & Razorpay Flow](docs/payment-flow.md)
 - [Deterministic Policy Engine](docs/policy-engine.md)
 - [Cryptographic Audit Model](docs/audit-model.md)
+- [Security Model & Threat Analysis](docs/security-model.md)
+- [REST API Specification](docs/api-spec.md)
 - [Failure Handling & Recovery](docs/failure-handling.md)
 - [Hackathon Demo Script](docs/demo-script.md)
-- [Progress Log](docs/progress.md)
+- [Progress & Benchmark Log](docs/progress.md)

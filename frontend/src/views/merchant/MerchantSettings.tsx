@@ -146,7 +146,7 @@ export const MerchantSettings: React.FC<MerchantSettingsProps> = ({
               className={`btn ${simulateFailure ? 'btn-danger' : 'btn-secondary'}`}
               style={{ minWidth: '160px' }}
             >
-              {simulateFailure ? 'Failure Mode Active ⚠️' : 'Enable Failure Mode'}
+              {simulateFailure ? 'Failure Mode Active [ON]' : 'Enable Failure Mode'}
             </button>
           </div>
         </div>

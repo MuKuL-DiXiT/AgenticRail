@@ -206,7 +206,7 @@ export class Orchestrator {
       return;
     }
 
-    logger.info(`🏆 Winner selected`, { correlation_id, task_id: taskId, winning_bot_id: winningBid.bot_id, amount: winningBid.amount, remaining_budget: this.budget });
+    logger.info(`[WINNER] Winner selected`, { correlation_id, task_id: taskId, winning_bot_id: winningBid.bot_id, amount: winningBid.amount, remaining_budget: this.budget });
 
     const awardMsg: AwardMessage = {
       type: 'AWARD',

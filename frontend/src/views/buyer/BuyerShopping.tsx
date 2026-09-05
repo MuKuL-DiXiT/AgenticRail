@@ -6,8 +6,10 @@ import {
   CreditCard,
   RefreshCw,
   Bot,
+  Trash2,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { formatPaise } from '../../utils/format';
 
 interface CartItem {
   product_id: string;
@@ -278,7 +280,7 @@ export const BuyerShopping: React.FC<BuyerShoppingProps> = ({
             value={inputText}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
-            placeholder="Type your purchase request (e.g. Find me marathon running shoes under ₹5,000)..."
+            placeholder="Type your purchase request (e.g. Find me marathon running shoes under 5,00,000 paise (₹5,000))..."
             className="fintech-input"
             style={{ flex: 1, height: '42px', fontSize: '0.875rem' }}
           />
@@ -309,7 +311,31 @@ export const BuyerShopping: React.FC<BuyerShoppingProps> = ({
               <ShoppingCart size={16} color="var(--brand-primary)" /> Live Negotiated Cart
             </div>
             {activeCart && activeCart.items.length > 0 && (
-              <span className="badge badge-success">{activeCart.items.length} items</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="badge badge-success">{activeCart.items.length} items</span>
+                <button
+                  type="button"
+                  title="Clear all cart items"
+                  onClick={() => onSendMessage('Clear cart')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-tertiary)',
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.2rem',
+                    padding: '0.15rem 0.35rem',
+                    borderRadius: '4px',
+                    transition: 'color 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#e11d48')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                >
+                  <Trash2 size={12} /> Clear
+                </button>
+              </div>
             )}
           </div>
 
@@ -333,11 +359,33 @@ export const BuyerShopping: React.FC<BuyerShoppingProps> = ({
                         {item.product_name}
                       </div>
                       <div style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>
-                        Qty: {item.quantity} × ₹{((item.unit_price_paise || 0) / 100).toLocaleString('en-IN')}
+                        Qty: {item.quantity} × {formatPaise(item.unit_price_paise)}
                       </div>
                     </div>
-                    <div className="font-mono" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      ₹{((item.subtotal_paise || 0) / 100).toLocaleString('en-IN')}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                      <div className="font-mono" style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>
+                        {formatPaise(item.subtotal_paise)}
+                      </div>
+                      <button
+                        type="button"
+                        title={`Remove ${item.product_name} from cart`}
+                        onClick={() => onSendMessage(`Remove ${item.product_name} from cart`)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-tertiary)',
+                          cursor: 'pointer',
+                          padding: '0.2rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderRadius: '4px',
+                          transition: 'color 0.15s, background-color 0.15s',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#e11d48')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -351,11 +399,12 @@ export const BuyerShopping: React.FC<BuyerShoppingProps> = ({
                   paddingTop: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: 700,
+                  gap: '0.5rem',
                 }}
               >
                 <span>Total Amount:</span>
-                <span className="font-mono" style={{ color: 'var(--brand-primary)' }}>
-                  ₹{((activeCart.total_paise || 0) / 100).toLocaleString('en-IN')}
+                <span className="font-mono" style={{ color: 'var(--brand-primary)', textAlign: 'right' }}>
+                  {formatPaise(activeCart.total_paise)}
                 </span>
               </div>
 
@@ -405,31 +454,31 @@ export const BuyerShopping: React.FC<BuyerShoppingProps> = ({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.825rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Max Single Transaction:</span>
-              <span className="font-mono" style={{ fontWeight: 600 }}>
-                ₹{(maxTx / 100).toLocaleString('en-IN')}
+              <span className="font-mono" style={{ fontWeight: 600, textAlign: 'right' }}>
+                {formatPaise(maxTx)}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Daily Spend Budget:</span>
-              <span className="font-mono" style={{ fontWeight: 600 }}>
-                ₹{(dailyLimit / 100).toLocaleString('en-IN')}
+              <span className="font-mono" style={{ fontWeight: 600, textAlign: 'right' }}>
+                {formatPaise(dailyLimit)}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Today's Settled Spend:</span>
-              <span className="font-mono" style={{ fontWeight: 600, color: 'var(--success)' }}>
-                ₹{(todaySpent / 100).toLocaleString('en-IN')}
+              <span className="font-mono" style={{ fontWeight: 600, color: 'var(--success)', textAlign: 'right' }}>
+                {formatPaise(todaySpent)}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Confirmation Threshold:</span>
-              <span className="font-mono" style={{ fontWeight: 600, color: 'var(--warning)' }}>
-                &gt; ₹{policy ? (policy.require_confirmation_above_paise / 100).toLocaleString('en-IN') : '4,999'}
+              <span className="font-mono" style={{ fontWeight: 600, color: 'var(--warning)', textAlign: 'right' }}>
+                &gt; {formatPaise(policy ? policy.require_confirmation_above_paise : 499900)}
               </span>
             </div>
 

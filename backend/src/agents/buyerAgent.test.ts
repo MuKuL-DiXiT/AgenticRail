@@ -74,4 +74,113 @@ describe('BuyerAgent End-to-End Flow', () => {
     expect(step4.action_type).toBe('PAYMENT_CONFIRMED');
     expect(step4.context.order?.total_paise).toBe(450000);
   });
+
+  it('allows user to prompt the agent to remove cart items, modify quantity, and clear cart', async () => {
+    const modConvId = 'test_mod_cart_conv_003';
+
+    // 1. Search running shoes
+    await BuyerAgent.processMessage('Search running shoes', modConvId);
+
+    // 2. Add to cart -> triggers upsell
+    await BuyerAgent.processMessage('Yes, add to cart', modConvId);
+
+    // 3. Accept upsell (adds Nike Dri-FIT Socks)
+    const stepWithUpsell = await BuyerAgent.processMessage('Yes, add socks', modConvId);
+    expect(stepWithUpsell.context.cart?.items.length).toBe(2);
+    expect(stepWithUpsell.reply).toContain('paise');
+    expect(stepWithUpsell.reply).toContain('(₹');
+
+    // 4. Prompt agent to remove socks: "remove socks"
+    const stepRemove = await BuyerAgent.processMessage('Please remove socks from my cart', modConvId);
+    expect(stepRemove.reply).toContain('Removed');
+    expect(stepRemove.reply).toContain('Socks');
+    expect(stepRemove.context.cart?.items.length).toBe(1);
+    expect(stepRemove.context.cart?.items[0].product_name).toContain('Nike Air Zoom Pegasus');
+    expect(stepRemove.reply).toContain('paise');
+    expect(stepRemove.reply).toContain('(₹');
+
+    // 5. Prompt agent to modify quantity: "change quantity to 2"
+    const stepQty = await BuyerAgent.processMessage('change quantity of shoes to 2', modConvId);
+    expect(stepQty.reply).toContain('Updated quantity');
+    expect(stepQty.reply).toContain('2');
+    expect(stepQty.context.cart?.items[0].quantity).toBe(2);
+    expect(stepQty.context.cart?.subtotal_paise).toBe(stepQty.context.cart!.items[0].unit_price_paise * 2);
+    expect(stepQty.context.cart?.total_paise).toBe(stepQty.context.cart!.subtotal_paise - stepQty.context.cart!.discount_paise);
+    expect(stepQty.reply).toContain('paise');
+    expect(stepQty.reply).toContain('(₹');
+
+    // 6. Prompt agent to clear cart: "clear cart"
+    const stepClear = await BuyerAgent.processMessage('clear the cart', modConvId);
+    expect(stepClear.action_type).toBe('CLEAR_CART');
+    expect(stepClear.reply).toContain('cart has been cleared');
+    expect(stepClear.context.cart?.items.length).toBe(0);
+
+    // 7. Prompt agent to remove when cart is already empty
+    const stepEmptyRemove = await BuyerAgent.processMessage('remove item', modConvId);
+    expect(stepEmptyRemove.reply).toContain('cart is currently empty');
+  });
+
+  it('handles "Check policy rules" without searching the product catalog', async () => {
+    const policyConvId = 'test_policy_rules_conv_004';
+    const res = await BuyerAgent.processMessage('Check policy rules', policyConvId);
+    expect(res.action_type).toBe('VIEW_POLICY');
+    expect(res.reply).toContain('Autonomous Spending Policy Rules');
+    expect(res.reply).toContain('Single Transaction Limit');
+    expect(res.reply).toContain('Daily Spending Budget');
+    expect(res.reply).not.toContain("searched the merchant's catalog");
+  });
+
+  it('allows water bottle (accessories) to be added to cart and passes policy evaluation', async () => {
+    const bottleConvId = 'test_water_bottle_conv_005';
+    const bottleBuyerId = 'buyer_bottle_test';
+    // Search water bottle
+    const searchStep = await BuyerAgent.processMessage('I need a water bottle', bottleConvId, bottleBuyerId);
+    expect(searchStep.reply).toContain('Water Bottle');
+
+    // Add to cart
+    const addStep = await BuyerAgent.processMessage('Yes, add to cart', bottleConvId, bottleBuyerId);
+    // If upsell offered or policy evaluated, verify policy is not DENY
+    if (addStep.action_type === 'UPSELL_PROPOSAL') {
+      const checkoutStep = await BuyerAgent.processMessage('No, proceed to checkout', bottleConvId, bottleBuyerId);
+      expect(checkoutStep.policy_verdict).toBe('ALLOW');
+      expect(checkoutStep.reply).toContain('ALLOWED');
+    } else {
+      expect(addStep.policy_verdict).toBe('ALLOW');
+      expect(addStep.reply).toContain('ALLOWED');
+    }
+  });
+
+  it('completes payment when user explicitly confirms after REQUIRE_CONFIRMATION and retains non-zero order amount', async () => {
+    const confConvId = 'test_manual_confirm_conv_006';
+    const confBuyerId = 'buyer_manual_confirm_test';
+
+    // Set confirmation threshold low (e.g. ₹3,500 = 350000 paise) so Pegasus requires confirmation
+    PolicyEngine.updatePolicy(confBuyerId, {
+      max_transaction_paise: 500000, // ₹5,000 max
+      daily_spend_limit_paise: 1000000,
+      require_confirmation_above_paise: 350000, // > ₹3,500 requires confirmation
+    });
+
+    // 1. Search running shoes
+    await BuyerAgent.processMessage('Search running shoes', confConvId, confBuyerId);
+
+    // 2. Add to cart
+    await BuyerAgent.processMessage('Yes, add to cart', confConvId, confBuyerId);
+
+    // 3. Decline upsell -> triggers REQUIRE_CONFIRMATION
+    const stepRequireConf = await BuyerAgent.processMessage('No, proceed to checkout', confConvId, confBuyerId);
+    expect(stepRequireConf.policy_verdict).toBe('REQUIRE_CONFIRMATION');
+    expect(stepRequireConf.reply).toContain('MANUAL CONFIRMATION REQUIRED');
+
+    // 4. User explicitly confirms: "Yes, proceed with payment"
+    const stepPay = await BuyerAgent.processMessage('Yes, proceed with payment', confConvId, confBuyerId);
+    expect(stepPay.action_type).toBe('PAYMENT_CONFIRMED');
+    expect(stepPay.reply).toContain('Transaction Completed Successfully');
+    expect(stepPay.reply).not.toContain("searched the merchant's catalog");
+    expect(stepPay.context.order?.status).toBe('PAID');
+    expect(stepPay.context.order?.total_paise).toBeGreaterThan(0);
+  });
 });
+
+
+

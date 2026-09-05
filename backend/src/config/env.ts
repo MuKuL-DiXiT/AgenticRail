@@ -41,7 +41,7 @@ const envSchema = z.object({
 export function validateEnv(): z.infer<typeof envSchema> {
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
-    console.warn('⚠️ Some environment variables had issues, using robust defaults:', parsed.error.flatten().fieldErrors);
+    console.warn('[WARN] Some environment variables had issues, using robust defaults:', parsed.error.flatten().fieldErrors);
     return envSchema.parse({});
   }
   return parsed.data;

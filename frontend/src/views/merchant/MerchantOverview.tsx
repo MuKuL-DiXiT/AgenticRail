@@ -1,6 +1,7 @@
 import React from 'react';
 import { StatCard } from '../../components/ui/StatCard';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { formatPaise } from '../../utils/format';
 import {
   ShoppingCart,
   DollarSign,
@@ -122,7 +123,7 @@ export const MerchantOverview: React.FC<MerchantOverviewProps> = ({
       >
         <StatCard
           title="Settled Revenue (DB)"
-          value={`₹${(settledRevenuePaise / 100).toLocaleString('en-IN')}`}
+          value={formatPaise(settledRevenuePaise)}
           subtitle="Direct Razorpay Test Rails settlement"
           icon={<DollarSign size={18} />}
           badge="Live"
@@ -221,8 +222,8 @@ export const MerchantOverview: React.FC<MerchantOverviewProps> = ({
                       <td>
                         <span style={{ fontWeight: 500 }}>{order.buyer_id || 'Autonomous Buyer'}</span>
                       </td>
-                      <td className="font-mono" style={{ fontWeight: 600 }}>
-                        ₹{((order.total_paise || 0) / 100).toLocaleString('en-IN')}
+                      <td className="font-mono" style={{ fontWeight: 600, fontSize: '0.825rem', whiteSpace: 'nowrap' }}>
+                        {formatPaise(order.total_paise)}
                       </td>
                       <td>
                         <StatusBadge status={order.status} />
@@ -320,7 +321,7 @@ export const MerchantOverview: React.FC<MerchantOverviewProps> = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Payment Rail:</span>
                 <span className="font-mono" style={{ fontWeight: 600, color: 'var(--success)' }}>
-                  Razorpay Test Rails Active ✓
+                  Razorpay Test Rails Active [OK]
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

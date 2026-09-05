@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { formatPaise } from '../../utils/format';
 
 interface OrderItem {
   product_id: string;
@@ -100,8 +101,12 @@ export const BuyerOrders: React.FC<BuyerOrdersProps> = ({ orders, onStartShoppin
                     </div>
                   </td>
 
-                  <td className="font-mono" style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                    ₹{((o.total_paise || 0) / 100).toLocaleString('en-IN')}
+                  <td className="font-mono" style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                    {formatPaise(
+                      o.total_paise > 0
+                        ? o.total_paise
+                        : o.items.reduce((sum, i) => sum + (i.subtotal_paise || (i.unit_price_paise * i.quantity) || 0), 0)
+                    )}
                   </td>
 
                   <td>

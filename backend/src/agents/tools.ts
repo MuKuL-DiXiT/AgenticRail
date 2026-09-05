@@ -5,6 +5,7 @@ import { PolicyEngine } from '../services/policyEngine';
 import { PaymentService } from '../services/paymentService';
 import { AuditService } from '../services/auditService';
 import { MerchantService } from '../services/merchantService';
+import { formatPaise } from '../utils/format';
 
 export interface ToolDefinition {
   name: string;
@@ -179,7 +180,7 @@ export const AgentTools: Record<string, ToolDefinition> = {
         conversation_id: context.conversation_id,
         agent_id: context.agent_id,
         action_type: 'ADD_TO_CART',
-        summary: `Added ${product?.name || args.product_id} to cart (Total: ₹${(cart.total_paise / 100).toFixed(2)})`,
+        summary: `Added ${product?.name || args.product_id} to cart (Total: ${formatPaise(cart.total_paise)})`,
         inputs: args,
         result: { cart_id: cart.id, total_items: cart.items.length, total_paise: cart.total_paise },
       });
@@ -189,9 +190,124 @@ export const AgentTools: Record<string, ToolDefinition> = {
         actor: 'BUYER_AGENT',
         event_type: 'CART_UPDATED',
         title: 'Product Added to Cart',
-        description: `Added "${product?.name}" to Cart. Cart total is now ₹${(cart.total_paise / 100).toFixed(2)}.`,
+        description: `Added "${product?.name}" to Cart. Cart total is now ${formatPaise(cart.total_paise)}.`,
         status: 'SUCCESS',
         metadata: { cart_id: cart.id, items: cart.items },
+      });
+
+      return cart;
+    },
+  },
+
+  remove_from_cart: {
+    name: 'remove_from_cart',
+    description: 'Remove a product or item from the active cart by product ID or name.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cart_id: { type: 'string' },
+        product_id: { type: 'string' },
+        product_name: { type: 'string' },
+      },
+      required: ['cart_id'],
+    },
+    execute: async (args, context) => {
+      const target = args.product_id || args.product_name || '';
+      const cart = CartOrderService.removeItem(args.cart_id, target);
+
+      AuditService.recordAction({
+        conversation_id: context.conversation_id,
+        agent_id: context.agent_id,
+        action_type: 'REMOVE_FROM_CART',
+        summary: `Removed ${target || 'item'} from cart (Total: ${formatPaise(cart.total_paise)})`,
+        inputs: args,
+        result: { cart_id: cart.id, total_items: cart.items.length, total_paise: cart.total_paise },
+      });
+
+      AuditService.recordEvent({
+        conversation_id: context.conversation_id,
+        actor: 'BUYER_AGENT',
+        event_type: 'CART_UPDATED',
+        title: 'Product Removed from Cart',
+        description: `Removed "${target}" from Cart. Cart total is now ${formatPaise(cart.total_paise)}.`,
+        status: 'SUCCESS',
+        metadata: { cart_id: cart.id, items: cart.items },
+      });
+
+      return cart;
+    },
+  },
+
+  update_cart_quantity: {
+    name: 'update_cart_quantity',
+    description: 'Update the quantity of an item in the active cart.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cart_id: { type: 'string' },
+        product_id: { type: 'string' },
+        product_name: { type: 'string' },
+        quantity: { type: 'number' },
+      },
+      required: ['cart_id', 'quantity'],
+    },
+    execute: async (args, context) => {
+      const target = args.product_id || args.product_name || '';
+      const cart = CartOrderService.updateQuantity(args.cart_id, target, args.quantity);
+
+      AuditService.recordAction({
+        conversation_id: context.conversation_id,
+        agent_id: context.agent_id,
+        action_type: 'UPDATE_CART_QUANTITY',
+        summary: `Updated ${target} quantity to ${args.quantity} (Total: ${formatPaise(cart.total_paise)})`,
+        inputs: args,
+        result: { cart_id: cart.id, total_items: cart.items.length, total_paise: cart.total_paise },
+      });
+
+      AuditService.recordEvent({
+        conversation_id: context.conversation_id,
+        actor: 'BUYER_AGENT',
+        event_type: 'CART_UPDATED',
+        title: 'Cart Item Quantity Modified',
+        description: `Set "${target}" quantity to ${args.quantity}. Cart total is now ${formatPaise(cart.total_paise)}.`,
+        status: 'SUCCESS',
+        metadata: { cart_id: cart.id, items: cart.items },
+      });
+
+      return cart;
+    },
+  },
+
+  clear_cart: {
+    name: 'clear_cart',
+    description: 'Empty all items from the active cart.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cart_id: { type: 'string' },
+      },
+      required: ['cart_id'],
+    },
+    execute: async (args, context) => {
+      const cart = CartOrderService.clearCart(args.cart_id);
+
+      AuditService.recordAction({
+        conversation_id: context.conversation_id,
+        agent_id: context.agent_id,
+        action_type: 'CLEAR_CART',
+        summary: `Cleared all items from cart`,
+        inputs: args,
+        result: { cart_id: cart.id, total_items: 0, total_paise: 0 },
+      });
+
+      AuditService.recordEvent({
+        conversation_id: context.conversation_id,
+        actor: 'BUYER_AGENT',
+        event_type: 'CART_UPDATED',
+        title: 'Cart Cleared',
+        description: `Emptied active cart. Cart total is now ${formatPaise(0)}.`,
+        status: 'SUCCESS',
+        metadata: { cart_id: cart.id, items: [] },
       });
 
       return cart;
@@ -255,7 +371,7 @@ export const AgentTools: Record<string, ToolDefinition> = {
         conversation_id: context.conversation_id,
         agent_id: context.agent_id,
         action_type: 'CREATE_ORDER',
-        summary: `Created order ${order.id.slice(0, 8)} for ₹${(order.total_paise / 100).toFixed(2)} with policy verification`,
+        summary: `Created order ${order.id.slice(0, 8)} for ${formatPaise(order.total_paise)} with policy verification`,
         inputs: args,
         result: { order_id: order.id, total_paise: order.total_paise },
       });
@@ -265,7 +381,7 @@ export const AgentTools: Record<string, ToolDefinition> = {
         actor: 'ORDER_SERVICE',
         event_type: 'ORDER_CREATED',
         title: 'Order Created & Policy Sealed',
-        description: `Order ${order.id} generated from Cart ${args.cart_id} with total ₹${(order.total_paise / 100).toFixed(2)}.`,
+        description: `Order ${order.id} generated from Cart ${args.cart_id} with total ${formatPaise(order.total_paise)}.`,
         status: 'SUCCESS',
         metadata: { order_id: order.id, items: order.items, total_paise: order.total_paise },
       });
@@ -317,7 +433,7 @@ export const AgentTools: Record<string, ToolDefinition> = {
         agent_id: context.agent_id,
         action_type: 'NEGOTIATE_OFFER',
         summary: negotiation.accepted
-          ? `Negotiated concession: ${negotiation.bundle_name} (-₹${(negotiation.discount_paise / 100).toFixed(2)})`
+          ? `Negotiated concession: ${negotiation.bundle_name} (-${formatPaise(negotiation.discount_paise)})`
           : 'Negotiation declined by merchant agent',
         inputs: args,
         result: negotiation,

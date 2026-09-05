@@ -110,12 +110,56 @@ export class CartOrderService {
     return cart;
   }
 
-  public static removeItem(cartId: string, productId: string): Cart {
+  public static removeItem(cartId: string, productIdOrName: string): Cart {
     const cart = this.getCart(cartId);
     if (!cart) throw new Error(`Cart ${cartId} not found`);
 
-    cart.items = cart.items.filter(i => i.product_id !== productId);
+    const lowerTarget = productIdOrName.toLowerCase().trim();
+    cart.items = cart.items.filter(
+      i => i.product_id !== productIdOrName && !i.product_name.toLowerCase().includes(lowerTarget)
+    );
+    if (cart.items.length <= 1 || cart.discount_paise >= cart.subtotal_paise) {
+      cart.discount_paise = 0;
+    }
     cart.subtotal_paise = cart.items.reduce((sum, item) => sum + item.subtotal_paise, 0);
+    cart.total_paise = Math.max(0, cart.subtotal_paise - cart.discount_paise);
+    cart.updated_at = new Date().toISOString();
+
+    const db = getDb();
+    db.prepare(`
+      UPDATE carts 
+      SET items = ?, subtotal_paise = ?, discount_paise = ?, total_paise = ?, updated_at = ?
+      WHERE id = ?
+    `).run(JSON.stringify(cart.items), cart.subtotal_paise, cart.discount_paise, cart.total_paise, cart.updated_at, cart.id);
+
+    return cart;
+  }
+
+  public static updateQuantity(cartId: string, productIdOrName: string, quantity: number): Cart {
+    const cart = this.getCart(cartId);
+    if (!cart) throw new Error(`Cart ${cartId} not found`);
+    if (cart.status !== 'ACTIVE') throw new Error(`Cart ${cartId} is not active`);
+
+    if (quantity <= 0) {
+      return this.removeItem(cartId, productIdOrName);
+    }
+
+    const lowerTarget = productIdOrName.toLowerCase().trim();
+    const itemIndex = cart.items.findIndex(
+      i => i.product_id === productIdOrName || i.product_name.toLowerCase().includes(lowerTarget)
+    );
+
+    if (itemIndex >= 0) {
+      cart.items[itemIndex].quantity = quantity;
+      cart.items[itemIndex].subtotal_paise = quantity * cart.items[itemIndex].unit_price_paise;
+    } else {
+      throw new Error(`Item "${productIdOrName}" not found in cart`);
+    }
+
+    cart.subtotal_paise = cart.items.reduce((sum, item) => sum + item.subtotal_paise, 0);
+    if (cart.items.length <= 1 || cart.discount_paise >= cart.subtotal_paise) {
+      cart.discount_paise = 0;
+    }
     cart.total_paise = Math.max(0, cart.subtotal_paise - cart.discount_paise);
     cart.updated_at = new Date().toISOString();
 
@@ -125,6 +169,26 @@ export class CartOrderService {
       SET items = ?, subtotal_paise = ?, total_paise = ?, updated_at = ?
       WHERE id = ?
     `).run(JSON.stringify(cart.items), cart.subtotal_paise, cart.total_paise, cart.updated_at, cart.id);
+
+    return cart;
+  }
+
+  public static clearCart(cartId: string): Cart {
+    const cart = this.getCart(cartId);
+    if (!cart) throw new Error(`Cart ${cartId} not found`);
+
+    cart.items = [];
+    cart.subtotal_paise = 0;
+    cart.discount_paise = 0;
+    cart.total_paise = 0;
+    cart.updated_at = new Date().toISOString();
+
+    const db = getDb();
+    db.prepare(`
+      UPDATE carts 
+      SET items = ?, subtotal_paise = ?, discount_paise = ?, total_paise = ?, updated_at = ?
+      WHERE id = ?
+    `).run(JSON.stringify(cart.items), cart.subtotal_paise, cart.discount_paise, cart.total_paise, cart.updated_at, cart.id);
 
     return cart;
   }
@@ -179,6 +243,12 @@ export class CartOrderService {
       }
     }
 
+    // Safeguard: total_paise must never be 0 if cart has items with positive price
+    let effectiveTotal = cart.total_paise;
+    if (effectiveTotal <= 0 && cart.subtotal_paise > 0) {
+      effectiveTotal = cart.subtotal_paise;
+    }
+
     const order: Order = {
       id: orderId,
       cart_id: cart.id,
@@ -186,7 +256,7 @@ export class CartOrderService {
       merchant_id: cart.merchant_id,
       status: 'PENDING_PAYMENT',
       items: cart.items,
-      total_paise: cart.total_paise,
+      total_paise: effectiveTotal,
       currency: 'INR',
       created_at: now,
       updated_at: now,

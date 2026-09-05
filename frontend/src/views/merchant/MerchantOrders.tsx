@@ -7,6 +7,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { formatPaise } from '../../utils/format';
 
 interface OrderItem {
   product_id: string;
@@ -230,8 +231,12 @@ export const MerchantOrders: React.FC<MerchantOrdersProps> = ({ orders, onRefres
                         </div>
                       </td>
 
-                      <td className="font-mono" style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                        ₹{((order.total_paise || 0) / 100).toLocaleString('en-IN')}
+                      <td className="font-mono" style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                        {formatPaise(
+                          order.total_paise > 0
+                            ? order.total_paise
+                            : order.items.reduce((sum, i) => sum + (i.subtotal_paise || (i.unit_price_paise * i.quantity) || 0), 0)
+                        )}
                       </td>
 
                       <td>
@@ -296,11 +301,11 @@ export const MerchantOrders: React.FC<MerchantOrdersProps> = ({ orders, onRefres
                                     <div>
                                       <div style={{ fontWeight: 500 }}>{it.product_name}</div>
                                       <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                        Qty: {it.quantity} × ₹{((it.unit_price_paise || 0) / 100).toLocaleString('en-IN')}
+                                        Qty: {it.quantity} × {formatPaise(it.unit_price_paise)}
                                       </div>
                                     </div>
-                                    <div className="font-mono" style={{ fontWeight: 600 }}>
-                                      ₹{((it.subtotal_paise || 0) / 100).toLocaleString('en-IN')}
+                                    <div className="font-mono" style={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                      {formatPaise(it.subtotal_paise)}
                                     </div>
                                   </div>
                                 ))}
@@ -315,8 +320,8 @@ export const MerchantOrders: React.FC<MerchantOrdersProps> = ({ orders, onRefres
                                   }}
                                 >
                                   <span>Total Settled:</span>
-                                  <span className="font-mono" style={{ color: 'var(--brand-primary)' }}>
-                                    ₹{((order.total_paise || 0) / 100).toLocaleString('en-IN')}
+                                  <span className="font-mono" style={{ color: 'var(--brand-primary)', textAlign: 'right' }}>
+                                    {formatPaise(order.total_paise)}
                                   </span>
                                 </div>
                               </div>

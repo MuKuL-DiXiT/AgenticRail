@@ -95,7 +95,7 @@ export class WorkerBot {
       return;
     }
 
-    logger.info(`🎉 Won task ${award.task_id}! Working...`, { correlation_id: award.correlation_id, bot_id: this.id, task_id: award.task_id });
+    logger.info(`[WON] Won task ${award.task_id}! Working...`, { correlation_id: award.correlation_id, bot_id: this.id, task_id: award.task_id });
 
     try {
       const output = await invokeGroq(this.id, this.apiKey, `Perform task: ${award.task_id}`);

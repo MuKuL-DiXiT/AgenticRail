@@ -25,6 +25,7 @@ interface MerchantLedgerProps {
   auditEvents: AuditEvent[];
   onVerifyLedger: () => void;
   onTamperLedger: () => void;
+  onRepairLedger?: () => void;
   isVerifying: boolean;
   ledgerVerification: { isValid: boolean; reason?: string } | null;
 }
@@ -33,6 +34,7 @@ export const MerchantLedger: React.FC<MerchantLedgerProps> = ({
   auditEvents,
   onVerifyLedger,
   onTamperLedger,
+  onRepairLedger,
   isVerifying,
   ledgerVerification,
 }) => {
@@ -107,11 +109,22 @@ export const MerchantLedger: React.FC<MerchantLedgerProps> = ({
             {isVerifying
               ? 'Verifying Block Hashes...'
               : ledgerVerification?.isValid
-              ? '✓ Chain Verified'
+              ? 'Chain Verified [OK]'
               : ledgerVerification?.isValid === false
-              ? '🚨 Tamper Detected!'
+              ? 'TAMPER DETECTED!'
               : 'Verify Ledger Integrity'}
           </button>
+
+          {onRepairLedger && ledgerVerification?.isValid === false && (
+            <button
+              onClick={onRepairLedger}
+              className="btn btn-success"
+              style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+              title="Recalculate parent hashes and restore cryptographic chain integrity"
+            >
+              <ShieldCheck size={14} /> Restore Chain Integrity
+            </button>
+          )}
 
           <button
             onClick={onTamperLedger}
@@ -316,10 +329,10 @@ export const MerchantLedger: React.FC<MerchantLedgerProps> = ({
                               : 'status-info'
                           }`}
                         >
-                          {evt.status === 'SUCCESS' && '✓ SUCCESS'}
-                          {evt.status === 'WARNING' && '● WARNING'}
-                          {evt.status === 'FAILURE' && '✕ FAILED'}
-                          {evt.status === 'INFO' && 'ℹ INFO'}
+                          {evt.status === 'SUCCESS' && '[SUCCESS]'}
+                          {evt.status === 'WARNING' && '[WARNING]'}
+                          {evt.status === 'FAILURE' && '[FAILED]'}
+                          {evt.status === 'INFO' && '[INFO]'}
                         </span>
                       </td>
                     </tr>

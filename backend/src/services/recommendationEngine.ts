@@ -1,6 +1,7 @@
 import { getDb } from '../ledger/db';
 import { Product, Recommendation } from '../models/domain';
 import { CatalogService } from './catalogService';
+import { formatPaise } from '../utils/format';
 
 export interface UpsellSuggestion {
   recommendation: Recommendation;
@@ -23,11 +24,11 @@ export class RecommendationEngine {
     for (const row of rows) {
       const recProduct = CatalogService.getProductById(row.recommended_product_id);
       if (recProduct) {
-        let pitch = `Would you like to add ${recProduct.name} for ₹${(recProduct.price_paise / 100).toFixed(0)}?`;
+        let pitch = `Would you like to add ${recProduct.name} for ${formatPaise(recProduct.price_paise)}?`;
         if (row.type === 'CROSS_SELL') {
-          pitch = `Pair with ${recProduct.name} (₹${(recProduct.price_paise / 100).toFixed(0)}) — ${row.rationale}`;
+          pitch = `Pair with ${recProduct.name} (${formatPaise(recProduct.price_paise)}) — ${row.rationale}`;
         } else if (row.type === 'UPSELL') {
-          pitch = `Upgrade option: ${recProduct.name} (₹${(recProduct.price_paise / 100).toFixed(0)}) — ${row.rationale}`;
+          pitch = `Upgrade option: ${recProduct.name} (${formatPaise(recProduct.price_paise)}) — ${row.rationale}`;
         }
 
         suggestions.push({

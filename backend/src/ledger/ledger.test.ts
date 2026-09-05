@@ -1,5 +1,5 @@
 import { getDb, initDb, closeDb } from './db';
-import { appendEntry, verifyChain, _corruptEntryForDemo } from './ledger';
+import { appendEntry, verifyChain, _corruptEntryForDemo, repairChain } from './ledger';
 import { LedgerEntryType } from './types';
 
 describe('Ledger Rigor & Cryptographic Hash Chain', () => {
@@ -64,6 +64,34 @@ describe('Ledger Rigor & Cryptographic Hash Chain', () => {
     expect(verification.brokenIndex).toBe(1);
     expect(verification.brokenId).toBe(e2.id);
     expect(verification.reason).toContain('hash mismatch');
+  });
+
+  it('repairs broken chain integrity after simulated corruption', () => {
+    appendEntry({
+      idempotency_key: 'r1',
+      type: LedgerEntryType.COMMERCE_SETTLEMENT,
+      from_entity: 'buyer_1',
+      to_entity: 'merchant_1',
+      amount_paise: 100000,
+      reference_id: 'order_1',
+    });
+    const e2 = appendEntry({
+      idempotency_key: 'r2',
+      type: LedgerEntryType.COMMERCE_SETTLEMENT,
+      from_entity: 'buyer_2',
+      to_entity: 'merchant_1',
+      amount_paise: 200000,
+      reference_id: 'order_2',
+    });
+
+    _corruptEntryForDemo(e2.id, 'hash', 'tampered_sha256_hash_99999');
+    expect(verifyChain().isValid).toBe(false);
+
+    const repairRes = repairChain();
+    expect(repairRes.repaired).toBeGreaterThanOrEqual(1);
+
+    const postVerification = verifyChain();
+    expect(postVerification.isValid).toBe(true);
   });
 
   it('handles idempotent retries without creating duplicate entries', () => {
