@@ -16,7 +16,11 @@ node_modules/
 
 # dotenv environment variables file
 .env
-.env.test
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # IDEs and editors
 .idea/
@@ -34,5 +38,11 @@ frontend/dist/
 # SQLite databases
 *.sqlite
 *.sqlite3
+*.db
+*.db-shm
+*.db-wal
 backend/*.sqlite
 backend/*.sqlite3
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal

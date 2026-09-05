@@ -1,4 +1,8 @@
 export enum LedgerEntryType {
+  PAYMENT_HELD = 'PAYMENT_HELD',
+  PAYMENT_CAPTURED = 'PAYMENT_CAPTURED',
+  PAYMENT_REFUNDED = 'PAYMENT_REFUNDED',
+  COMMERCE_SETTLEMENT = 'COMMERCE_SETTLEMENT',
   ESCROW_HOLD = 'ESCROW_HOLD',
   ESCROW_RELEASE = 'ESCROW_RELEASE',
   ESCROW_REFUND = 'ESCROW_REFUND',
@@ -9,10 +13,10 @@ export enum LedgerEntryType {
 export interface LedgerEntryPayload {
   idempotency_key: string;
   type: LedgerEntryType;
-  from_bot_id: string;
-  to_bot_id: string;
-  amount: number;
-  task_id: string;
+  from_entity: string;
+  to_entity: string;
+  amount_paise: number;
+  reference_id: string; // order_id or task_id
 }
 
 export interface LedgerEntry extends LedgerEntryPayload {
@@ -22,10 +26,10 @@ export interface LedgerEntry extends LedgerEntryPayload {
   hash: string;
 }
 
-export interface EscrowState {
-  taskId: string;
-  amount: number;
-  fromBotId: string;
-  toBotId: string;
-  status: 'HELD' | 'RELEASED' | 'REFUNDED';
+export interface VerificationResult {
+  isValid: boolean;
+  brokenIndex?: number;
+  brokenId?: number;
+  reason?: string;
+  totalEntries?: number;
 }

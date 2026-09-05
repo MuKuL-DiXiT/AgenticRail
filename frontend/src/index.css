@@ -1,15 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --bg-color: #0b0c10;
-  --surface-color: rgba(25, 27, 36, 0.6);
-  --surface-border: rgba(255, 255, 255, 0.08);
-  --text-primary: #f0f0f0;
-  --text-secondary: #9ba1a6;
-  --accent-color: #66fcf1;
-  --accent-glow: rgba(102, 252, 241, 0.2);
-  --danger-color: #ff4c4c;
-  --success-color: #4cff73;
+  /* Canvas & Surface */
+  --bg-canvas: #f8f9fb;
+  --surface-card: #ffffff;
+  --surface-border: #eaecf0;
+  --surface-border-subtle: #f2f4f7;
+  --surface-hover: #f9fafb;
+  --surface-active: #f2f4f7;
+
+  /* Typography */
+  --text-primary: #101828;
+  --text-secondary: #475467;
+  --text-muted: #98a2b3;
+  --text-placeholder: #667085;
+
+  /* Brand Colors (Razorpay-inspired Crimson Red Accent) */
+  --brand-red: #d92d20;
+  --brand-red-hover: #b42318;
+  --brand-red-light: #fef3f2;
+  --brand-red-border: #fecdca;
+  --brand-red-text: #b42318;
+
+  /* Semantic - Success (Paid, Allowed, Active) */
+  --semantic-success-bg: #ecfdf3;
+  --semantic-success-border: #abefc6;
+  --semantic-success-text: #027a48;
+
+  /* Semantic - Warning (Pending, Confirmation, Low Stock) */
+  --semantic-warning-bg: #fffaeb;
+  --semantic-warning-border: #fedf89;
+  --semantic-warning-text: #b54708;
+
+  /* Semantic - Danger (Failed, Denied, Blocked) */
+  --semantic-danger-bg: #fef3f2;
+  --semantic-danger-border: #fecdca;
+  --semantic-danger-text: #b42318;
+
+  /* Semantic - Info (AI, System, Protocol) */
+  --semantic-info-bg: #eff8ff;
+  --semantic-info-border: #b2ddff;
+  --semantic-info-text: #175cd3;
+
+  /* Shadows */
+  --shadow-xs: 0px 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0px 1px 3px rgba(16, 24, 40, 0.1), 0px 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0px 4px 8px -2px rgba(16, 24, 40, 0.1), 0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03);
 }
 
 * {
@@ -19,248 +56,239 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
-  background-color: var(--bg-color);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-canvas);
   color: var(--text-primary);
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(102, 252, 241, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(102, 252, 241, 0.03) 0%, transparent 50%);
-  background-attachment: fixed;
   min-height: 100vh;
-  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Panel Utilities */
-.glass-panel {
-  background: var(--surface-color);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', SFMono-Regular, Consolas, monospace;
+}
+
+/* Fintech Surface Card */
+.fintech-card {
+  background: var(--surface-card);
   border: 1px solid var(--surface-border);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px 0 var(--accent-glow);
+.fintech-card-hover:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: #d0d5dd;
 }
 
-/* Typography */
-h1, h2, h3 {
-  font-weight: 600;
-  letter-spacing: -0.02em;
+/* Custom Clean Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-
-.title {
-  font-size: 2rem;
-  background: linear-gradient(90deg, #fff, var(--text-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 1rem;
-}
-
-.subtitle {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  font-weight: 400;
-}
-
-/* Grid Layout */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 1.5rem;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.main-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.sidebar-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Bot Roster & Badges */
-.bot-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--surface-border);
-}
-
-.bot-row:last-child {
-  border-bottom: none;
-}
-
-.bot-name {
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.bot-balance {
-  font-family: monospace;
-  font-size: 1.1rem;
-  color: var(--accent-color);
-}
-
-/* Live Feed Items */
-.feed-item {
-  padding: 1rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border-left: 3px solid var(--text-secondary);
-  margin-bottom: 0.75rem;
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.feed-item.task { border-left-color: var(--text-primary); }
-.feed-item.bid { border-left-color: #ff9e00; }
-.feed-item.award { border-left-color: var(--accent-color); }
-.feed-item.result { border-left-color: var(--success-color); }
-
-.feed-meta {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.25rem;
-  display: flex;
-  justify-content: space-between;
-}
-
-/* Buttons */
-.btn {
+::-webkit-scrollbar-track {
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--surface-border);
-  padding: 0.5rem 1rem;
+}
+::-webkit-scrollbar-thumb {
+  background: #d0d5dd;
   border-radius: 6px;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 500;
-  transition: all 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #98a2b3;
+}
+
+/* Fintech Buttons */
+.btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  color: var(--text-secondary);
 }
 
 .btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: #d0d5dd;
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary Brand Button (Razorpay-inspired red) */
+.btn-primary {
+  background: var(--brand-red);
+  color: #ffffff;
+  border: 1px solid var(--brand-red);
+  font-weight: 600;
+  box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.btn-primary:hover {
+  background: var(--brand-red-hover);
+  border-color: var(--brand-red-hover);
+  color: #ffffff;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+  font-weight: 500;
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #98a2b3;
+}
+
+/* Danger / Destructive Button */
 .btn-danger {
-  border-color: rgba(255, 76, 76, 0.4);
-  color: var(--danger-color);
+  background: var(--semantic-danger-bg);
+  color: var(--semantic-danger-text);
+  border: 1px solid var(--semantic-danger-border);
+  font-weight: 500;
 }
 
 .btn-danger:hover {
-  background: rgba(255, 76, 76, 0.1);
-  border-color: var(--danger-color);
+  background: #fee4e2;
+  border-color: #fecdca;
 }
 
-.btn-accent {
-  border-color: rgba(102, 252, 241, 0.4);
-  color: var(--accent-color);
+/* Success Button */
+.btn-success {
+  background: var(--semantic-success-bg);
+  color: var(--semantic-success-text);
+  border: 1px solid var(--semantic-success-border);
+  font-weight: 500;
 }
 
-.btn-accent:hover {
-  background: rgba(102, 252, 241, 0.1);
-  border-color: var(--accent-color);
-  box-shadow: 0 0 10px var(--accent-glow);
+.btn-success:hover {
+  background: #d1fadf;
 }
 
-/* Ledger Verification States */
-.status-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: var(--text-secondary);
-  box-shadow: 0 0 8px rgba(0,0,0,0.5);
-  transition: background-color 0.3s ease;
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
 }
 
-.status-indicator.valid {
-  background-color: var(--success-color);
-  box-shadow: 0 0 10px var(--success-color);
+.status-badge-success {
+  background: var(--semantic-success-bg);
+  color: var(--semantic-success-text);
+  border: 1px solid var(--semantic-success-border);
 }
 
-.status-indicator.invalid {
-  background-color: var(--danger-color);
-  box-shadow: 0 0 10px var(--danger-color);
+.status-badge-warning {
+  background: var(--semantic-warning-bg);
+  color: var(--semantic-warning-text);
+  border: 1px solid var(--semantic-warning-border);
 }
 
-.status-indicator.pulsing {
-  animation: pulse 1.5s infinite;
+.status-badge-danger {
+  background: var(--semantic-danger-bg);
+  color: var(--semantic-danger-text);
+  border: 1px solid var(--semantic-danger-border);
 }
 
-/* Animations */
-@keyframes slideIn {
-  0% { opacity: 0; transform: translateX(-10px); }
-  100% { opacity: 1; transform: translateX(0); }
+.status-badge-info {
+  background: var(--semantic-info-bg);
+  color: var(--semantic-info-text);
+  border: 1px solid var(--semantic-info-border);
 }
 
-@keyframes pulse {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.2); }
-  100% { opacity: 1; transform: scale(1); }
+.status-badge-neutral {
+  background: #f2f4f7;
+  color: #344054;
+  border: 1px solid #eaecf0;
 }
 
-/* Ledger List */
-.ledger-list {
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.ledger-list::-webkit-scrollbar {
-  width: 6px;
-}
-.ledger-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-.ledger-list::-webkit-scrollbar-thumb {
-  background: var(--surface-border);
-  border-radius: 10px;
-}
-.ledger-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.ledger-item {
-  font-family: monospace;
-  font-size: 0.85rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.hash-truncate {
-  white-space: nowrap;
+/* Fintech Data Table */
+.fintech-table-container {
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: #ffffff;
   overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
 }
 
-.type-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  font-size: 0.7rem;
-  letter-spacing: 0.05em;
+.fintech-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.8125rem;
+}
+
+.fintech-table thead th {
+  background: #f9fafb;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--surface-border);
+  white-space: nowrap;
+}
+
+.fintech-table tbody tr {
+  border-bottom: 1px solid var(--surface-border-subtle);
+  transition: background 0.1s ease;
+}
+
+.fintech-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.fintech-table tbody tr:hover {
+  background: #fcfcfd;
+}
+
+.fintech-table tbody td {
+  padding: 0.8rem 1rem;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+/* Inputs & Form Controls */
+.fintech-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fintech-input:focus {
+  outline: none;
+  border-color: var(--brand-red);
+  box-shadow: 0px 0px 0px 4px rgba(217, 45, 32, 0.12);
+}
+
+.fintech-input::placeholder {
+  color: var(--text-placeholder);
 }

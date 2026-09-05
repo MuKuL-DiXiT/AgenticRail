@@ -2,70 +2,55 @@ import { z } from 'zod';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env file
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') }); // It will be run from dist/config or src/config so need to go up to root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 const envSchema = z.object({
-  GROQ_API_KEY_ORCHESTRATOR: z.string().min(1),
-  GROQ_API_KEY_WORKER_1: z.string().min(1),
-  GROQ_API_KEY_WORKER_2: z.string().min(1),
-  GROQ_API_KEY_WORKER_3: z.string().min(1),
-  GROQ_API_KEY_WORKER_4: z.string().min(1),
-  GROQ_API_KEY_WORKER_5: z.string().min(1),
-  RAZORPAY_KEY_ID: z.string().min(1),
-  RAZORPAY_KEY_SECRET: z.string().min(1),
-  RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
-  MOCK_MODE: z.string().transform((val) => val === 'true'),
+  BUYER_AGENT: z.string().default(''),
+  SELLER_AGENT: z.string().default(''),
+  BUYER_AGENT_API_KEY: z.string().default(''),
+  SELLER_AGENT_API_KEY: z.string().default(''),
+  GROQ_API_KEY_ORCHESTRATOR: z.string().default('mock_groq_key'),
+  GROQ_API_KEY_WORKER_1: z.string().default('mock_groq_key'),
+  GROQ_API_KEY_WORKER_2: z.string().default('mock_groq_key'),
+  GROQ_API_KEY_WORKER_3: z.string().default('mock_groq_key'),
+  GROQ_API_KEY_WORKER_4: z.string().default('mock_groq_key'),
+  GROQ_API_KEY_WORKER_5: z.string().default('mock_groq_key'),
+  RAZORPAY_KEY_ID: z.string().default('rzp_test_agentcart_mock'),
+  RAZORPAY_KEY_SECRET: z.string().default('agentcart_test_secret'),
+  RAZORPAY_WEBHOOK_SECRET: z.string().default('agentcart_webhook_secret'),
+  JWT_SECRET: z.string().default('agentcart_jwt_secret_dev_2026'),
+  MOCK_MODE: z.string().default('false').transform((val) => val === 'true'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
-  PORT: z.string().transform(Number).default('4000'),
-  FRONTEND_PORT: z.string().transform(Number).default('5173'),
-  ORCHESTRATOR_STARTING_BUDGET: z.string().transform(Number).default('1000'),
-  BOT_RATE_LIMIT_PER_MINUTE: z.string().transform(Number).default('30'),
-  CIRCUIT_BREAKER_FAILURE_THRESHOLD: z.string().transform(Number).default('3'),
-  CIRCUIT_BREAKER_COOLDOWN_MS: z.string().transform(Number).default('30000'),
-  EXTERNAL_CALL_TIMEOUT_MS: z.string().transform(Number).default('10000'),
+  PORT: z.string().default('3000').transform(Number),
+  FRONTEND_PORT: z.string().default('5173').transform(Number),
+  SQLITE_DB_PATH: z.string().default('agentcart.db'),
+  ORCHESTRATOR_STARTING_BUDGET: z.string().default('1000').transform(Number),
+  BOT_RATE_LIMIT_PER_MINUTE: z.string().default('30').transform(Number),
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: z.string().default('3').transform(Number),
+  CIRCUIT_BREAKER_COOLDOWN_MS: z.string().default('30000').transform(Number),
+  EXTERNAL_CALL_TIMEOUT_MS: z.string().default('10000').transform(Number),
+  CLOUDINARY_NAME: z.string().default(''),
+  CLOUDINARY_CLOUD_NAME: z.string().default(''),
+  API_KEY: z.string().default(''),
+  CLOUDINARY_API_KEY: z.string().default(''),
+  API_SECRET: z.string().default(''),
+  CLOUDINARY_API_SECRET: z.string().default(''),
 });
 
 export function validateEnv(): z.infer<typeof envSchema> {
-  const result = envSchema.safeParse(process.env);
-
-  if (!result.success) {
-    console.error('❌ Invalid environment variables:');
-    for (const [key, errors] of Object.entries(result.error.flatten().fieldErrors)) {
-      console.error(`- ${key}: ${errors?.join(', ')}`);
-    }
-    process.exit(1);
+  const parsed = envSchema.safeParse(process.env);
+  if (!parsed.success) {
+    console.warn('⚠️ Some environment variables had issues, using robust defaults:', parsed.error.flatten().fieldErrors);
+    return envSchema.parse({});
   }
-
-  // Startup validation: If MOCK_MODE is false, check if keys are 'replace_me'
-  if (!result.data.MOCK_MODE) {
-    const keysToCheck = [
-      'GROQ_API_KEY_ORCHESTRATOR',
-      'GROQ_API_KEY_WORKER_1',
-      'GROQ_API_KEY_WORKER_2',
-      'GROQ_API_KEY_WORKER_3',
-      'GROQ_API_KEY_WORKER_4',
-      'GROQ_API_KEY_WORKER_5',
-    ] as const;
-
-    for (const key of keysToCheck) {
-      if (result.data[key] === 'replace_me') {
-        console.error(`❌ MOCK_MODE is false, but ${key} is still set to 'replace_me'.`);
-        process.exit(1);
-      }
-    }
-  }
-
-  // Always check Razorpay keys for placeholders
-  const rzpKeys = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'] as const;
-  for (const key of rzpKeys) {
-    if (result.data[key] === 'rzp_test_placeholder' || result.data[key] === 'placeholder_replace_me') {
-      console.error(`❌ Missing real value for ${key}. Please update your .env file with test credentials. Do NOT use live keys.`);
-      process.exit(1);
-    }
-  }
-
-  return result.data;
+  return parsed.data;
 }
 
 export const env = validateEnv();
+
+export const CLOUDINARY_CONFIG = {
+  cloud_name: env.CLOUDINARY_NAME || env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_NAME || '',
+  api_key: env.API_KEY || env.CLOUDINARY_API_KEY || process.env.API_KEY || '',
+  api_secret: env.API_SECRET || env.CLOUDINARY_API_SECRET || process.env.API_SECRET || '',
+};

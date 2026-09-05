@@ -135,10 +135,10 @@ export class Orchestrator {
         appendEntry({
           idempotency_key: `resolve_${task_id}`,
           type: action,
-          from_bot_id: 'orchestrator',
-          to_bot_id: bot_id,
-          amount: awarded.amount,
-          task_id,
+          from_entity: 'orchestrator',
+          to_entity: bot_id,
+          amount_paise: Math.round(awarded.amount * 100),
+          reference_id: task_id,
         });
 
         this.awardedTasks.delete(task_id);
@@ -196,10 +196,10 @@ export class Orchestrator {
       appendEntry({
         idempotency_key: `hold_${taskId}`,
         type: LedgerEntryType.ESCROW_HOLD,
-        from_bot_id: 'orchestrator',
-        to_bot_id: winningBid.bot_id,
-        amount: winningBid.amount,
-        task_id: taskId,
+        from_entity: 'orchestrator',
+        to_entity: winningBid.bot_id,
+        amount_paise: Math.round(winningBid.amount * 100),
+        reference_id: taskId,
       });
     } catch (err: any) {
       logger.error(`Failed to hold escrow. Aborting award`, { correlation_id, task_id: taskId, error: err.message });

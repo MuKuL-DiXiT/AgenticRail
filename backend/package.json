@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "seed": "ts-node-dev --transpile-only src/seed.ts",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
@@ -12,13 +13,16 @@
     "format:check": "prettier --check \"src/**/*.ts\""
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.1.2",
+    "cloudinary": "^2.11.0",
     "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "express": "^4.22.2",
     "express-rate-limit": "^8.7.0",
     "groq-sdk": "^1.6.0",
     "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
     "razorpay": "^2.9.8",
     "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
@@ -26,11 +30,13 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.11",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
     "@types/ioredis": "^4.28.10",
     "@types/jest": "^29.5.12",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "@types/supertest": "^7.2.1",
     "@types/swagger-ui-express": "^4.1.8",
